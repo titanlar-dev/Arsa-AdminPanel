@@ -62,6 +62,14 @@ export const userButton = style({
   gap: vars.space[3],
   minWidth: 0,
   width: '100%',
+  /**
+   * Dokunma hedefi ≥44px (brifing kuralı). Avatar + tek satır ad ile buton ~28
+   * piksele iniyordu (Playwright ile hem tablo hem mobil kart görünümünde
+   * ölçüldü) — parmakla isabet ettirilemeyecek kadar ince. `control.height.sm`
+   * (44px) tabanı satırı 44 piksele açar; `alignItems: center` içeriği ortalar,
+   * kısa içerikte bile hedef korunur.
+   */
+  minHeight: vars.control.height.sm,
   border: 'none',
   margin: 0,
   padding: 0,
@@ -93,7 +101,17 @@ export const avatarSlot = style({
 export const identity = style({
   display: 'grid',
   gap: vars.space[1],
-  minWidth: 0,
+  /**
+   * `minWidth: '8rem'` (0 DEĞİL): ad + firma bloğu tablo sütununda çökmesin.
+   *
+   * `userName`/`userCompany` `overflowWrap: anywhere` taşır; `minWidth: 0` ile ad
+   * sütunu tek karaktere (~26px) inip harf harf dikey diziliyordu (çok sütunlu
+   * kullanıcı tablosu, 1024px'de ölçüldü). `8rem` taban adı okunur tutar, tablo
+   * doğal genişliğine ulaşınca `DataTable` scroller'ı kaydırır. Mobil kart
+   * görünümünde `userButton` genişliği (≥240px) 8rem tabanı rahat taşır, taşma
+   * yok. Ham `rem`: sütun genişliği token boşluğu (AGENTS).
+   */
+  minWidth: '8rem',
 })
 
 export const userName = style({
@@ -113,7 +131,14 @@ export const userCompany = style({
 export const contact = style({
   display: 'grid',
   gap: vars.space[1],
-  minWidth: 0,
+  /**
+   * `minWidth: '8rem'` (0 DEĞİL): e-posta sütunu çökmesin. `overflowWrap: anywhere`
+   * uzun e-postanın min-content'ini tek karaktere düşürünce sütun ~55 piksele inip
+   * "yonetim@…" harf harf dikey diziliyordu (kullanıcı tablosu, 768–1024px'de
+   * ölçüldü). `8rem` taban e-postayı okunur tutar; tablo genişleyince scroller
+   * kaydırır. Ham `rem`: sütun genişliği token boşluğu (AGENTS).
+   */
+  minWidth: '8rem',
   overflowWrap: 'anywhere',
 })
 

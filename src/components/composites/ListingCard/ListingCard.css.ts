@@ -116,9 +116,28 @@ export const clickRegion = recipe({
        * çözmez — o yalnız öğenin katkısını tabanlar, tavanlayan izin kendisidir
        * (AGENTS: "NumberInput.input'a minWidth:0 yazmak bunu ÇÖZMEZ").
        */
-      compact: { gridTemplateColumns: 'auto minmax(0, 1fr)', alignItems: 'stretch' },
-      /** Detaylı liste: yatay, büyük görsel, tüm meta. Body sütunu yine `minmax(0, 1fr)`. */
-      detailed: { gridTemplateColumns: 'auto minmax(0, 1fr)', alignItems: 'stretch' },
+      /**
+       * ≤30rem'de **dikey yığına** döner: görsel üstte tam genişlik, içerik altta.
+       *
+       * Yatay `compact` (görsel 7rem sabit) dar bir kapta oransal olarak bozuluyor:
+       * ApprovalQueue kuyruk kartı 320 pikselde 246 piksele iniyor, 7rem'lik görsel
+       * bunun ~%45'ini yiyor ve içeriğe kalan ~132 piksel başlığı/rozeti/konumu
+       * harf harf sıkıştırıyordu (kullanıcı bildirimi + Playwright ile ölçüldü).
+       * Dikey yığın içeriğe tam genişlik verir — ilan kartlarının standart mobil
+       * düzeni. Eşik 30rem: repodaki diğer kart kırılımlarıyla (ReportCard,
+       * detailed görsel) aynı; viewport sorgusu, çünkü repoda container query yok.
+       */
+      compact: {
+        gridTemplateColumns: 'auto minmax(0, 1fr)',
+        alignItems: 'stretch',
+        '@media': { 'screen and (max-width: 30rem)': { gridTemplateColumns: 'minmax(0, 1fr)' } },
+      },
+      /** Detaylı liste: yatay, büyük görsel, tüm meta. ≤30rem'de yine dikey yığın. */
+      detailed: {
+        gridTemplateColumns: 'auto minmax(0, 1fr)',
+        alignItems: 'stretch',
+        '@media': { 'screen and (max-width: 30rem)': { gridTemplateColumns: 'minmax(0, 1fr)' } },
+      },
       /** Izgara: dikey, üstte görsel. */
       grid: { gridTemplateRows: 'auto 1fr' },
     },
@@ -136,18 +155,26 @@ export const media = recipe({
   },
   variants: {
     variant: {
-      compact: { width: '7rem' },
       /**
-       * 11rem sabit; ama 320 pikselde bu genişlik body'ye durum rozetini
-       * ("Onaylı / Yayında" ~9.5rem, `nowrap`) sığdıramayacak kadar yer bırakıyor
-       * ve rozet kartın `overflow: hidden`'ıyla kırpılıyordu. Dar ekranda görsel
-       * `compact` ölçüsüne iniyor (ReportCard'ın 30rem eşiğiyle aynı desen) —
-       * viewport sorgusu, çünkü repoda container query yok.
+       * ≤30rem'de görsel tam genişliğe açılıp `grid` gibi 3:2 oranı alır
+       * (`clickRegion` orada dikey yığına geçiyor). Geniş ekranda 7rem yatay şerit.
+       */
+      compact: {
+        width: '7rem',
+        '@media': {
+          'screen and (max-width: 30rem)': { width: '100%', aspectRatio: '3 / 2' },
+        },
+      },
+      /**
+       * 11rem sabit; 320 pikselde ise görsel body'yi ezmesin diye dikey yığına
+       * geçip tam genişlik + 3:2 oranı alır (eski davranış görseli 7rem'e indiriyordu
+       * ama yatay kalıyor, rozet/başlık yine sıkışıyordu). `clickRegion` ile birlikte
+       * çalışır. Eşik 30rem: ReportCard ve diğer kart kırılımlarıyla aynı.
        */
       detailed: {
         width: '11rem',
         '@media': {
-          'screen and (max-width: 30rem)': { width: '7rem' },
+          'screen and (max-width: 30rem)': { width: '100%', aspectRatio: '3 / 2' },
         },
       },
       grid: { width: '100%', aspectRatio: '3 / 2' },
@@ -219,7 +246,21 @@ export const titleBlock = style({
   display: 'grid',
   gap: '0.125rem',
   flex: 1,
-  minWidth: 0,
+  /**
+   * `minWidth: 0` DEĞİL, `6rem` taban.
+   *
+   * `topRow` bir `flex-wrap` kabı: başlık ile durum rozeti (`statusSlot`,
+   * `nowrap`, flexShrink:0, ~9rem) sığmazsa rozet alt satıra insin diye. Ama
+   * `minWidth: 0` ile başlık sıfıra kadar ezilebildiği için wrap **hiç
+   * tetiklenmiyordu**: flexbox rozetle başlığı aynı satıra sığdırıp başlığı
+   * ~13 piksele çöktürüyor, "İlan no: …" ve başlık dar `compact` kartta (dashboard
+   * "en uzun bekleyen ilanlar" listesi, 320px'de body ~146px) harf harf dikey
+   * diziliyordu (Playwright ile ölçüldü). `6rem` taban, başlığa yer kalmayınca
+   * rozeti bir alt satıra taşır; `title`/`listingNo`'daki `overflowWrap: anywhere`
+   * bu tabanda metni sarar, kırpmaz. 6rem 320px'in altına inmediğimiz için body'yi
+   * hiçbir zaman taşırmaz (en dar gerçek body 146px > 96px).
+   */
+  minWidth: '6rem',
 })
 
 export const title = style({

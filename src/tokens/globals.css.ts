@@ -18,11 +18,33 @@ globalStyle('html', {
   fontSize: '100%',
   color: vars.color.text.primary,
   background: vars.color.bg.canvas,
+  /**
+   * Mobil tarayıcıların otomatik metin büyütmesini kilitler.
+   *
+   * iOS Safari ve Android Chrome, dar bir sütunu okunur kılmak için gövde
+   * metnini kendiliğinden ölçekler (özellikle yatay↔dikey döndürmede). Bu, bizim
+   * `fluid()` tipografi ölçeğimizin üstüne biner ve satır kaymaları/beklenmedik
+   * boyutlar üretir — ölçeği biz belirliyoruz, tarayıcı değil. `100%` otomatik
+   * büyütmeyi kapatır ama kullanıcının kendi zoom'unu (erişilebilirlik) korur.
+   * `Webkit` öneki iOS Safari için hâlâ gerekli; öneksiz olan Firefox/Chrome.
+   */
+  WebkitTextSizeAdjust: '100%',
+  textSizeAdjust: '100%',
 })
 
 globalStyle('body', {
   minWidth: '20rem',
-  minHeight: '100vh',
+  /**
+   * `['100vh', '100dvh']` — dinamik viewport, eski tarayıcı fallback'iyle.
+   *
+   * iOS Safari ve Android'de adres çubuğu açılıp kapandıkça görünür yükseklik
+   * değişir; `100vh` en büyük (çubuk gizli) hâli baz alır, bu yüzden çubuk
+   * görünürken sayfa altı kesilir. `100dvh` o anki görünür yüksekliği izler.
+   * Array fallback: `dvh` bilmeyen tarayıcı ilk kuralı (`100vh`) kullanır, bilen
+   * ikinciyle üzerine yazar. (Repo'daki `AppShell`/`Drawer`/`AuthScreen` ile aynı
+   * `dvh` kararı; burada zemin `min-height` olduğu için fallback güvenli tarafta.)
+   */
+  minHeight: ['100vh', '100dvh'],
   margin: 0,
   fontSize: vars.font.size.sm,
   lineHeight: vars.lineHeight.body,

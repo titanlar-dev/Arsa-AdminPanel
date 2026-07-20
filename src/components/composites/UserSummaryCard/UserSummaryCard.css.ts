@@ -190,11 +190,21 @@ export const factLabel = style({
 })
 
 export const factValue = style({
-  minWidth: 0,
+  /**
+   * `minWidth: '8rem'` (0 DEĞİL): değer sütunu çökmesin.
+   *
+   * `fact` grid'i `6rem minmax(0, 1fr)`; `overflowWrap: anywhere` uzun e-postanın
+   * min-content'ini tek karaktere düşürünce, kart dar bir sütuna girdiğinde
+   * (UserDetailPage "desktop columns", 1024px sol sütun) değer ~15 piksele çöküp
+   * "yonetim@…" harf harf dikey diziliyordu (Playwright ile ölçüldü). `8rem`
+   * taban değeri okunur tutar; `anywhere` bu tabanda e-postayı sarar, kart yatay
+   * kaydırmaz. 320px'de `fact` tek sütuna düştüğü için (max-width:30rem) değer
+   * zaten tam genişlik, 8rem tabanı taşırmaz.
+   */
+  minWidth: '8rem',
   fontSize: vars.font.size.sm,
   color: vars.color.text.primary,
   fontVariantNumeric: 'tabular-nums',
-  /** Uzun e-posta kırılsın; kart yatay kaydırmasın. */
   overflowWrap: 'anywhere',
 })
 

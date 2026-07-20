@@ -168,6 +168,7 @@ export function ListingCard({
         <div className={css.selectionCell}>
           <Checkbox
             label={`${listing.title} ilanını seç`}
+            hideLabel
             checked={selected}
             onCheckedChange={onSelectedChange}
           />

@@ -1,5 +1,6 @@
 import { assignVars, createGlobalTheme, globalStyle } from '@vanilla-extract/css'
 import { vars } from './contract.css'
+import { fluid } from './fluid'
 
 /**
  * Token değerleri ve üç geçici palet.
@@ -289,34 +290,54 @@ createGlobalTheme(':root', vars, {
       sans: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       mono: '"SFMono-Regular", Consolas, "Liberation Mono", monospace',
     },
+    /**
+     * Akışkan tipografi ölçeği (min@320 / max@1440).
+     *
+     * Gövde/UI metni (`sm`, `md`) neredeyse sabittir: `sm` tam `1rem`'de
+     * kilitlidir (brifing "metin 1rem altına inmez" kuralı) ve okuma sırasında
+     * satır kaymasına yol açacak oynaklık istemiyoruz. Ölçek yükseldikçe fluid
+     * artış açılır: büyük başlıklar 320 pikselde küçülüp dar ekranda taşmayı
+     * önler, 1440 pikselde eski sabit değerlerine döner (masaüstü görünümü
+     * birebir korunur). Uçlar `fluid()` içinde 320↔1440 rampasına bağlıdır.
+     */
     size: {
-      sm: '1rem',
-      md: '1.0625rem',
-      lg: '1.125rem',
-      xl: '1.25rem',
-      '2xl': '1.5rem',
-      '3xl': '1.875rem',
-      '4xl': '2.25rem',
+      sm: fluid(16, 16), // 1rem — sabit gövde tabanı
+      md: fluid(16, 17),
+      lg: fluid(16.5, 18),
+      xl: fluid(18, 20),
+      '2xl': fluid(20, 24),
+      '3xl': fluid(23, 30),
+      '4xl': fluid(27, 36),
     },
     weight: { regular: '400', medium: '500', semibold: '600', bold: '700' },
   },
 
   lineHeight: { tight: '1.25', heading: '1.35', body: '1.5', relaxed: '1.65' },
 
+  /**
+   * Akışkan boşluk ölçeği (min@320 / max@1440).
+   *
+   * En küçük iki adım (`1`, `2`) **sabittir**: kılcal çizgi ve ikon–metin arası
+   * gibi yerlerde kullanılır, akışkanlaştırılırsa dar ekranda öğeler yapışır.
+   * `3` ve üstü mobilde daralır (aynı ekrana daha çok içerik sığar), 1440
+   * pikselde eski değerlerine döner. Fluid taban `control.inlinePadding`'e de
+   * yayılır (buton yatay dolgusu mobilde bir tık toparlanır); `control.height`
+   * ise sabit kalır, dokunma hedefi ≥44px korunur.
+   */
   space: {
     0: '0',
-    1: '0.25rem',
-    2: '0.5rem',
-    3: '0.75rem',
-    4: '1rem',
-    5: '1.25rem',
-    6: '1.5rem',
-    8: '2rem',
-    10: '2.5rem',
-    12: '3rem',
-    16: '4rem',
-    20: '5rem',
-    24: '6rem',
+    1: fluid(4, 4), // sabit — kılcal
+    2: fluid(8, 8), // sabit — ikon/metin arası
+    3: fluid(10, 12),
+    4: fluid(14, 16),
+    5: fluid(16, 20),
+    6: fluid(18, 24),
+    8: fluid(24, 32),
+    10: fluid(30, 40),
+    12: fluid(34, 48),
+    16: fluid(44, 64),
+    20: fluid(52, 80),
+    24: fluid(60, 96),
   },
 
   radius: {

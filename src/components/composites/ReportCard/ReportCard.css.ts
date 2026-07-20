@@ -252,7 +252,17 @@ export const listingText = style({
   display: 'grid',
   gap: vars.space[1],
   flex: 1,
-  minWidth: 0,
+  /**
+   * `minWidth: 0` DEĞİL, `6rem` taban — `ListingCard.titleBlock` ile aynı gerekçe.
+   *
+   * `listingBox` bir `flex-wrap` kabı (görsel + metin + durum/benzerlik rozeti).
+   * Rozetler `nowrap`+flexShrink:0; metin `minWidth: 0` iken sıfıra ezilebildiği
+   * için wrap tetiklenmiyor, "İlan no: …" 320px'de ~47 piksele çöküp harf harf
+   * dikey diziliyordu (ReportManagementPage kuyruk kartlarında ölçüldü). `6rem`
+   * taban, rozete yer kalmayınca onu alt satıra sarar; `overflowWrap: anywhere`
+   * metni bu tabanda kırpmadan sarar.
+   */
+  minWidth: '6rem',
 })
 
 export const listingTitle = style({

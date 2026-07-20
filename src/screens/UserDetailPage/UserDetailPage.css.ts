@@ -266,10 +266,22 @@ export const dialogActions = style({
   gap: vars.space[3],
 })
 
-/** Tablo hücresindeki uzun başlığın kartı taşırmaması için. */
+/**
+ * Tablo hücresindeki uzun başlık/özet metni.
+ *
+ * `minWidth: '12rem'` (0 DEĞİL): tablo `mobileMode="scroll"` ile geliyor, yani
+ * dar ekranda **yatay kaymalı**, sıkışmamalı. `overflowWrap: anywhere` metnin
+ * min-content'ini tek karaktere düşürdüğü için `width: 100%`'lik tablo 320
+ * pikselde bu sütunu ~46 piksele çöktürüp başlığı harf harf dikey diziyordu
+ * (Playwright ile ölçüldü). `12rem` taban sütunu okunur tutar; toplam tablo
+ * genişliği kabı aşınca `scroller` devreye girip yatay kaydırır — scroll modunun
+ * amaçladığı davranış. Ham `rem`: sütun genişliği token sözleşmesinde yok
+ * (AGENTS'ta belgeli `space[24]`↔`container.sm` boşluğu; `dateCell`'in `nowrap`'i
+ * ve dashboard toolbar'ının `18rem`'i ile aynı istisna).
+ */
 export const cellText = style({
   display: 'block',
-  minWidth: 0,
+  minWidth: '12rem',
   overflowWrap: 'anywhere',
 })
 

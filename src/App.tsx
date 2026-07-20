@@ -12,7 +12,7 @@ export function App() {
       style={{
         display: 'grid',
         placeItems: 'center',
-        minHeight: '100vh',
+        minHeight: '100dvh',
         padding: vars.space[8],
         textAlign: 'center',
       }}

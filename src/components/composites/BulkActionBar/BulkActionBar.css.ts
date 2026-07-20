@@ -34,8 +34,21 @@ export const root = recipe({
        */
       floating: {
         position: 'fixed',
-        insetBlockEnd: vars.space[4],
-        insetInline: vars.space[4],
+        /*
+          Alt konum iOS home indicator'ı (safe-area-inset-bottom, ~34px) hesaba
+          katar: sabit `space[4]` (16px) çubuğu göstergenin üstüne bindiriyordu.
+          `max(space[4], safe-area + space[2])` masaüstünde (safe-area 0) eski
+          16px'i korur, iOS'ta göstergenin 8px üstüne oturur. Aynı desen
+          Toast/Drawer/ModerationActionBar'da da var.
+        */
+        insetBlockEnd: `max(${vars.space[4]}, calc(env(safe-area-inset-bottom, 0px) + ${vars.space[2]}))`,
+        /*
+          Yatay güvenli alan: landscape iPhone'da yan çentik/kavis floating
+          çubuğu kırpabilir. `max` ile safe-area 0 olan cihazlarda `space[4]`
+          korunur.
+        */
+        insetInlineStart: `max(${vars.space[4]}, env(safe-area-inset-left, 0px))`,
+        insetInlineEnd: `max(${vars.space[4]}, env(safe-area-inset-right, 0px))`,
         marginInline: 'auto',
         maxWidth: vars.container.md,
         zIndex: vars.z.sticky,

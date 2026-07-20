@@ -140,8 +140,22 @@ export const cellStack = style({
 })
 
 export const cellPrimary = style({
+  /** `block`: inline span'de `minWidth` etkisizdir; taban ancak blokta uygulanır. */
+  display: 'block',
   color: vars.color.text.primary,
   overflowWrap: 'anywhere',
+  /**
+   * `minWidth: '12rem'` — başlık sütunu çökmesin.
+   *
+   * Tablo `width: 100%` ve `overflowWrap: anywhere` başlığın min-content'ini tek
+   * karaktere düşürünce, çok sütunlu tablo dar alana (ör. 1024px izole ekran)
+   * başlık sütununu ~44 piksele ezip metni harf harf dikey diziyordu (Playwright
+   * ile ölçüldü). `12rem` taban sütunu okunur tutar; tablo doğal genişliğine
+   * ulaşınca `DataTable` scroller'ı yatay kaydırır. Kart görünümü (`<48rem`)
+   * `cellPrimary` kullanmaz, yalnız tablo etkilenir. Ham `rem`: sütun genişliği
+   * token boşluğu (AGENTS), `UserDetailPage.cellText` ile aynı istisna.
+   */
+  minWidth: '12rem',
 })
 
 export const cellSecondary = style({
