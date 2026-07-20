@@ -98,11 +98,20 @@ function createLocation(
   }
 }
 
+/**
+ * Uygulamanın servis edildiği taban yol (Vite `base`). Yerelde `/`, GitHub
+ * Pages'te `/Arsam.net-AdminPanel/`. Görsel yolları buna göre kurulur: mutlak
+ * `/fixtures/...` yolu Pages'in alt yolunu atlayıp kök alan adına gidiyor ve 404
+ * veriyordu (asset'ler `base` altından servis ediliyor). `BASE_URL` sonda `/`
+ * taşır, bu yüzden ardına doğrudan `fixtures/...` eklenir.
+ */
+const BASE = import.meta.env.BASE_URL
+
 function createPhoto(listingKey: string, order: number, altText: string): ListingPhoto {
   return {
     id: `${listingKey}-photo-${order}`,
-    url: `/fixtures/listings/${listingKey}-${order}.webp`,
-    thumbnailUrl: `/fixtures/listings/${listingKey}-${order}-thumb.webp`,
+    url: `${BASE}fixtures/listings/${listingKey}-${order}.webp`,
+    thumbnailUrl: `${BASE}fixtures/listings/${listingKey}-${order}-thumb.webp`,
     altText,
     order,
     isCover: order === 1,

@@ -36,8 +36,9 @@ function foto({
 }: FotoArgs): ListingPhoto {
   return {
     id: `photo-${order}`,
-    url: `/fixtures/listings/${kaynak}.webp`,
-    thumbnailUrl: `/fixtures/listings/${kaynak}-thumb.webp`,
+    // `BASE_URL` ile: Pages alt yolu (`/Arsam.net-AdminPanel/`) atlanmasın (bkz. fixtures/listings.ts).
+    url: `${import.meta.env.BASE_URL}fixtures/listings/${kaynak}.webp`,
+    thumbnailUrl: `${import.meta.env.BASE_URL}fixtures/listings/${kaynak}-thumb.webp`,
     altText,
     order,
     isCover,
