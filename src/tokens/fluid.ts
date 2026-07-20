@@ -53,8 +53,7 @@ export function fluid(
 
   const lo = Math.min(minRem, maxRem)
   const hi = Math.max(minRem, maxRem)
-  const preferred =
-    interceptRem === 0 ? `${slopeVw}vw` : `${interceptRem}rem + ${slopeVw}vw`
+  const preferred = interceptRem === 0 ? `${slopeVw}vw` : `${interceptRem}rem + ${slopeVw}vw`
 
   return `clamp(${lo}rem, ${preferred}, ${hi}rem)`
 }

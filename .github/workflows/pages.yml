@@ -48,10 +48,14 @@ jobs:
       - name: Storybook build
         run: pnpm build-storybook
         env:
-          STORYBOOK_BASE_PATH: /ilan-admin-panel/
+          STORYBOOK_BASE_PATH: /Arsam.net-AdminPanel/
 
       - name: Pages yapılandırması
         uses: actions/configure-pages@v5
+        with:
+          # Repoda Pages henüz açık değilse action kendisi etkinleştirir
+          # (kaynak = GitHub Actions). Aksi hâlde "Get Pages site failed" verir.
+          enablement: true
 
       - name: Artifact yükle
         uses: actions/upload-pages-artifact@v3
