@@ -13,7 +13,14 @@ globalStyle('*, *::before, *::after', {
 })
 
 globalStyle('html', {
-  minWidth: '20rem',
+  /*
+    Sabit `min-width: 20rem` KALDIRILDI. 320px viewport'ta masaüstü tarayıcının
+    dikey kaydırma çubuğu (~15px) kullanılabilir genişliği ~305px'e düşürüyor;
+    `min-width: 320px` gövdeyi yine 320px'de tutunca bu fark **yatay taşma**
+    üretiyordu. İçerik `fluid()` ölçeği ve öğe-bazlı min-genişliklerle zaten
+    viewport'a uyum sağlıyor — adaptive-fluid için gövde viewport'a esner, sabit
+    tabana çivilenmez.
+  */
   fontFamily: vars.font.family.sans,
   fontSize: '100%',
   color: vars.color.text.primary,
@@ -33,7 +40,6 @@ globalStyle('html', {
 })
 
 globalStyle('body', {
-  minWidth: '20rem',
   /**
    * `['100vh', '100dvh']` — dinamik viewport, eski tarayıcı fallback'iyle.
    *
