@@ -41,10 +41,23 @@ const statusPulse = keyframes({
   '50%': { opacity: 0.4, transform: 'scale(0.85)' },
 })
 
+/*
+  Cam yüzey filtresi bir CSS değişkeninde toplanır.
+
+  Neden: `backdrop-filter: blur(Npx) saturate(P%)` doğrudan yazıldığında, üretim
+  CSS küçültücüsü (esbuild) iki fonksiyon arasındaki **boşluğu siliyor**
+  (`blur(80px)saturate(200%)`) ve bu geçersiz değer tarayıcıda `none`'a düşüyordu —
+  cam efekti üretimde kayboluyordu (yerelde çalışıp Pages'te kaybolması bundandı).
+  Değeri bir custom property'ye koyunca küçültücü içine girmez, boşluk korunur.
+*/
+const PILL_FILTER = 'blur(60px) saturate(180%)'
+const HEAVY_FILTER = 'blur(80px) saturate(200%)'
+
 /* Ortak cam yüzey — blur + doygunluk + specüler iç gölge. */
 const glassSurface = {
-  backdropFilter: 'blur(60px) saturate(180%)',
-  WebkitBackdropFilter: 'blur(60px) saturate(180%)',
+  vars: { '--island-filter': PILL_FILTER },
+  backdropFilter: 'var(--island-filter)',
+  WebkitBackdropFilter: 'var(--island-filter)',
   border: '1px solid rgba(255, 255, 255, 0.16)',
   boxShadow: [
     'inset 0 1px 0 0 rgba(255, 255, 255, 0.20)',
@@ -238,8 +251,9 @@ export const popup = style({
   color: TEXT,
   background:
     'linear-gradient(160deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.08) 100%), rgba(120,130,255,0.05)',
-  backdropFilter: 'blur(80px) saturate(200%)',
-  WebkitBackdropFilter: 'blur(80px) saturate(200%)',
+  vars: { '--island-filter': HEAVY_FILTER },
+  backdropFilter: 'var(--island-filter)',
+  WebkitBackdropFilter: 'var(--island-filter)',
   border: '1px solid rgba(255, 255, 255, 0.18)',
   boxShadow: [
     'inset 0 1px 0 0 rgba(255, 255, 255, 0.25)',
