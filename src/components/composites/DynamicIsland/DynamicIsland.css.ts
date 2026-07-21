@@ -42,22 +42,21 @@ const statusPulse = keyframes({
 })
 
 /*
-  Cam yüzey filtresi bir CSS değişkeninde toplanır.
+  Cam filtresi **tek fonksiyon** (`blur`) — bilerek `saturate` YOK.
 
-  Neden: `backdrop-filter: blur(Npx) saturate(P%)` doğrudan yazıldığında, üretim
-  CSS küçültücüsü (esbuild) iki fonksiyon arasındaki **boşluğu siliyor**
-  (`blur(80px)saturate(200%)`) ve bu geçersiz değer tarayıcıda `none`'a düşüyordu —
-  cam efekti üretimde kayboluyordu (yerelde çalışıp Pages'te kaybolması bundandı).
-  Değeri bir custom property'ye koyunca küçültücü içine girmez, boşluk korunur.
+  Neden: `backdrop-filter: blur(Npx) saturate(P%)` (iki fonksiyon) üretim CSS
+  küçültücüsünde iki fonksiyon arası boşluğu kaybedip (`blur(80px)saturate(200%)`)
+  geçersizleşiyor ve tarayıcıda `none`'a düşüyordu — cam efekti Pages'te
+  kayboluyordu. Değeri CSS custom property'ye almak WebKit'te düzeltti ama
+  Chromium `backdrop-filter: var()`'ı `none`'a çeviriyor. En dayanıklı, üç motorda
+  da çalışan yol tek fonksiyon: boşluk yok, küçültücü bozamaz. Doygunluk hissini
+  yüzeyin kendi renkli gradyanı ve specüler iç gölgesi zaten veriyor.
 */
-const PILL_FILTER = 'blur(60px) saturate(180%)'
-const HEAVY_FILTER = 'blur(80px) saturate(200%)'
 
-/* Ortak cam yüzey — blur + doygunluk + specüler iç gölge. */
+/* Ortak cam yüzey — blur + specüler iç gölge. */
 const glassSurface = {
-  vars: { '--island-filter': PILL_FILTER },
-  backdropFilter: 'var(--island-filter)',
-  WebkitBackdropFilter: 'var(--island-filter)',
+  backdropFilter: 'blur(60px)',
+  WebkitBackdropFilter: 'blur(60px)',
   border: '1px solid rgba(255, 255, 255, 0.16)',
   boxShadow: [
     'inset 0 1px 0 0 rgba(255, 255, 255, 0.20)',
@@ -251,9 +250,8 @@ export const popup = style({
   color: TEXT,
   background:
     'linear-gradient(160deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.08) 100%), rgba(120,130,255,0.05)',
-  vars: { '--island-filter': HEAVY_FILTER },
-  backdropFilter: 'var(--island-filter)',
-  WebkitBackdropFilter: 'var(--island-filter)',
+  backdropFilter: 'blur(80px)',
+  WebkitBackdropFilter: 'blur(80px)',
   border: '1px solid rgba(255, 255, 255, 0.18)',
   boxShadow: [
     'inset 0 1px 0 0 rgba(255, 255, 255, 0.25)',
