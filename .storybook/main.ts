@@ -44,6 +44,19 @@ const config = {
     if (process.env.STORYBOOK_BASE_PATH) {
       config.base = process.env.STORYBOOK_BASE_PATH
     }
+    /*
+      Üretim CSS küçültmesini kapat.
+
+      esbuild küçültücüsü, `backdrop-filter` + `-webkit-backdrop-filter` çiftini
+      "yinelenen" görüp **standart `backdrop-filter`'ı düşürüyor, yalnız `-webkit-`
+      versiyonunu bırakıyordu**. Firefox `-webkit-backdrop-filter` tanımadığından
+      DynamicIsland'ın cam efekti Firefox'ta üretimde kayboluyordu (yerel `storybook
+      dev` küçültmediği için orada çalışıyordu — asıl fark buydu). `cssTarget` ayarı
+      bunu engellemedi. Küçültmeyi kapatmak vanilla-extract'in ürettiği her iki
+      kuralı da aynen korur; üç motorda ve eski Safari'de cam efekti çalışır. Bir
+      bileşen kütüphanesi vitrini için CSS boyutu artışı önemsiz.
+    */
+    config.build = { ...config.build, cssMinify: false }
     return config
   },
 } satisfies StorybookConfig
