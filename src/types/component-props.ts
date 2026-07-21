@@ -7,6 +7,7 @@ import type {
   Ref,
   TextareaHTMLAttributes,
 } from 'react'
+import type { LucideIcon } from 'lucide-react'
 
 import type {
   AdminNote,
@@ -5302,4 +5303,68 @@ export interface DropdownMenuCheckboxItemProps {
   disabled?: boolean
   /** @default false */
   closeOnClick?: boolean
+}
+
+/**
+ * Dynamic Island'ın navigasyon öğesi.
+ *
+ * `icon` bir `LucideIcon` (component referansı), `NavigationItem`'daki gibi
+ * `ReactNode` değil: Dynamic Island aynı ikonu üç ayrı boyutta çizer (hap'ta
+ * küçük, grid'de büyük, mini-nav'da minik), bu yüzden boyutu bileşenin kendisi
+ * verir. `color` glass estetiğinin renkli ikon vurgusudur (CSS renk dizesi).
+ */
+export interface DynamicIslandItem {
+  id: string
+  label: string
+  icon: LucideIcon
+  /** Panel içi rota; verilirse öğe bir `<a>` olur ve `onNavigate` ile birlikte çalışır. */
+  href?: string
+  /** İkon rengi (CSS). Verilmezse nötr. Glass yüzeyde renkli ikonlar Apple hissini verir. */
+  color?: string
+}
+
+/** Genişletilmiş panelin "Hızlı Komutlar" satırı. */
+export interface DynamicIslandCommand {
+  id: string
+  label: string
+  /** İkincil açıklama ("Schema Builder" gibi). */
+  hint?: string
+  icon: LucideIcon
+  href?: string
+}
+
+/**
+ * Apple Dynamic Island'ına benzeyen, cam-morfizmli gezinme + komut paleti hap'ı.
+ *
+ * Üç durum: (1) daraltılmış hap (marka + aktif sayfa + ⌘K), (2) genişletilmiş
+ * cam kart (navigasyon grid'i + hızlı komutlar), (3) arama modu (⌘K ile açılır,
+ * öğeleri süzer). Odak-kilidi/Escape/dış-tık kapanma Base UI Dialog'undan gelir.
+ *
+ * **Router-agnostik**: gerçek gezinmeyi yapmaz, `onNavigate`/`onCommand` ile
+ * niyeti bildirir; aktiflik `activeItemId`'den okunur (URL'den değil) —
+ * `SidebarNav` ile aynı desen. Görünüm Apple glass estetiğidir ve bilinçli
+ * olarak açık tema token'larından ayrıdır (koyu zeminde kullanılır).
+ */
+export interface DynamicIslandProps {
+  /** Navigasyon öğeleri; genişletilmiş grid'de ve mini-nav'da gösterilir. */
+  items: DynamicIslandItem[]
+  /** Genişletilmiş panelin hızlı komutları. Verilmezse bölüm çizilmez. */
+  commands?: DynamicIslandCommand[]
+  /** Aktif öğenin kimliği; daraltılmış hap onu gösterir, grid'de vurgulanır. */
+  activeItemId?: string
+  /**
+   * Marka etiketi (daraltılmış hap logosu yanında ve başlıkta). @default 'M'
+   * için tek harf; tam ad `brandName` ile.
+   */
+  brandName?: string
+  /** Marka rozeti ("dev", "beta"). Verilmezse rozet çizilmez. */
+  brandBadge?: string
+  /** Açık/kapalı — kontrollü. Verilmezse hap kendi durumunu tutar (yönetilen). */
+  open?: boolean
+  /** Açık durum değiştiğinde çalışır (kontrollü kullanım; tek argüman). */
+  onOpenChange?: (open: boolean) => void
+  /** Bir navigasyon öğesi seçilince çalışır; panel kapanır. */
+  onNavigate?: (item: DynamicIslandItem) => void
+  /** Bir hızlı komut seçilince çalışır; panel kapanır. */
+  onCommand?: (command: DynamicIslandCommand) => void
 }
