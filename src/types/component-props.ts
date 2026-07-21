@@ -5368,3 +5368,31 @@ export interface DynamicIslandProps {
   /** Bir hızlı komut seçilince çalışır; panel kapanır. */
   onCommand?: (command: DynamicIslandCommand) => void
 }
+
+/** Dock'un tek eylem/uygulama öğesi (macOS Dock ikonu). */
+export interface DockItem {
+  label: string
+  icon: LucideIcon
+  /** İkon rengi (CSS). Glass yüzeyde renkli ikonlar Apple hissini verir. */
+  color?: string
+  /** Panel içi rota; verilirse öğe bir `<a>` olur. */
+  href?: string
+}
+
+/**
+ * macOS Dock'a benzeyen, cam-morfizmli hızlı-eylem çubuğu.
+ *
+ * Alt-ortada sabit durur; üzerine gelinen ikon büyür ve komşuları da hafif
+ * büyür (macOS "magnification"), ikon üstünde etiket balonu belirir, altında
+ * bağlam etiketi (`title`) durur. Router-agnostik: gezinmeyi yapmaz, `onSelect`
+ * ile bildirir. Görünüm bilinçli olarak açık tema token'larından ayrı, koyu
+ * Apple glass estetiğidir (`DynamicIsland` ile aynı dil) — koyu zeminde kullanılır.
+ */
+export interface DockProps {
+  /** Dock ikonları, verilen sırayla. */
+  items: DockItem[]
+  /** Dock'un altındaki bağlam etiketi (aktif sayfa/bölüm adı). Verilmezse çizilmez. */
+  title?: string
+  /** Bir öğe seçilince (tık) çalışır. */
+  onSelect?: (item: DockItem, index: number) => void
+}
