@@ -1,4 +1,4 @@
-import { keyframes, style } from '@vanilla-extract/css'
+import { globalStyle, keyframes, style } from '@vanilla-extract/css'
 import { recipe } from '@vanilla-extract/recipes'
 
 /**
@@ -242,6 +242,10 @@ export const popup = style({
   width: 'min(100vw - 2rem, 720px)',
   maxHeight: '80vh',
   overflowY: 'auto',
+  overscrollBehavior: 'contain',
+  // Firefox: ince, cam-uyumlu kaydırma çubuğu (thumb yarı saydam beyaz, track şeffaf).
+  scrollbarWidth: 'thin',
+  scrollbarColor: 'rgba(255, 255, 255, 0.22) transparent',
   borderRadius: '1.5rem',
   color: TEXT,
   background:
@@ -260,6 +264,33 @@ export const popup = style({
   outline: 'none',
 
   '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
+})
+
+/*
+  Kaydırma çubuğunu cam UI'a uydur (Blink/WebKit).
+
+  Dar/kısa viewport'ta içerik `max-height: 80vh`'i aşınca kart kaydırılır ve
+  tarayıcının varsayılan açık-gri çubuğu koyu cam yüzeyle çelişiyordu. İnce, şeffaf
+  track + yarı saydam beyaz thumb ile UI'ın kendi diline oturur. Firefox karşılığı
+  yukarıda `scrollbar-width`/`scrollbar-color` ile verildi.
+*/
+globalStyle(`${popup}::-webkit-scrollbar`, {
+  width: '10px',
+  height: '10px',
+})
+globalStyle(`${popup}::-webkit-scrollbar-track`, {
+  background: 'transparent',
+})
+globalStyle(`${popup}::-webkit-scrollbar-thumb`, {
+  background: 'rgba(255, 255, 255, 0.18)',
+  borderRadius: '9999px',
+  // Şeffaf kenarlık + padding-box: thumb'ın etrafında boşluk kalır, ince görünür.
+  border: '2px solid transparent',
+  backgroundClip: 'padding-box',
+})
+globalStyle(`${popup}::-webkit-scrollbar-thumb:hover`, {
+  background: 'rgba(255, 255, 255, 0.30)',
+  backgroundClip: 'padding-box',
 })
 
 /* Blur desteklemeyen tarayıcıda opak koyu yüzeye düş (kaynak globals.css deseni). */
