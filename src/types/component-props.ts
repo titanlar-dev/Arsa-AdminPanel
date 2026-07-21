@@ -1639,16 +1639,44 @@ export interface ColumnDef<T> {
    */
   cell?: (row: T) => ReactNode
   /**
-   * Başlığı sıralama düğmesine çevirir; basılınca `onSortChange` çalışır ve
-   * aynı sütuna tekrar basmak yönü çevirir.
+   * Başlığı sıralama düğmesine çevirir; basılınca sıralama tetiklenir ve aynı
+   * sütuna tekrar basmak yönü çevirir.
    *
-   * Sıralamayı **tablo yapmaz**: niyeti bildirir, sıralı veriyi `rows`'ta geri
-   * bekler. `onSortChange` bağlanmamışsa düğme çıkar ama hiçbir şey olmaz —
-   * ikisini birlikte verin.
+   * İki mod:
+   * - **Kontrollü** (`onSortChange` verilir): tablo sıralamaz, niyeti bildirir ve
+   *   sıralı veriyi `rows`'ta geri bekler. `onSortChange` bağlanmamışsa düğme çıkar
+   *   ama bir şey olmaz — ikisini birlikte verin.
+   * - **Yönetilen** (`onSortChange` yok): tablo `sortAccessor`/`accessor` ile
+   *   **client-side sıralar**; shift+tık ikincil sıralama ekler.
    *
    * @default false
    */
   sortable?: boolean
+  /**
+   * Yönetilen sıralamada bu sütunun karşılaştırma değeri.
+   *
+   * `cell` bir `ReactNode` döndürdüğü için ondan sıralanabilir bir değer okunamaz;
+   * bileşik sütunlarda (kapak + başlık) `accessor` da yetmez. `sortAccessor`
+   * sıralama için ham değeri verir (metin `localeCompare` ile Türkçe sıralanır;
+   * sayı/tarih doğal sırayla). Verilmezse `accessor`'a düşülür; o da yoksa yönetilen
+   * sıralama bu sütunu atlar. Kontrollü sıralamada kullanılmaz (veriyi çağıran sıralar).
+   */
+  sortAccessor?: (row: T) => string | number | Date | null | undefined
+  /**
+   * Sütun-içi filtreyi açar (`toolbar.filters` ile). Başlığın altına bir metin
+   * filtre kutusu çizilir; girilen değer alt dize olarak (büyük/küçük harf
+   * duyarsız) eşleştirilir. Kategorik/aralık filtreleri için global `FilterBar`
+   * kullanılır — bu, tablo-içi hızlı daraltma içindir.
+   * @default false
+   */
+  filterable?: boolean
+  /**
+   * Yönetilen filtrede satırın bu sütundaki filtrelenebilir metni. `cell` bir
+   * `ReactNode` döndürdüğü için ondan okunamaz; `filterAccessor` ham metni verir.
+   * Verilmezse `accessor`'a düşülür; o da yoksa yönetilen filtre bu sütunu atlar.
+   * Kontrollü filtrede kullanılmaz (veriyi çağıran süzer).
+   */
+  filterAccessor?: (row: T) => string
   /**
    * Sütunun kullanıcı tarafından gizlenebileceğini bildirir (brifing 2.3:
    * "görünür kolonları seçme").
@@ -1682,6 +1710,32 @@ export interface ColumnDef<T> {
   align?: 'start' | 'center' | 'end'
 }
 
+/**
+ * DataTable'ın kendi araç çubuğunda gösterilecek kontroller.
+ *
+ * Verilmezse araç çubuğu **hiç render edilmez** (bugünkü davranış). Her kontrol
+ * bağımsız açılır; hepsi hem kontrollü (ilgili `on*Change` verilir) hem yönetilen
+ * (verilmezse tablo kendi durumunu tutup client-side uygular) modda çalışır.
+ */
+export interface DataTableToolbar {
+  /** Yoğunluk (rahat/sıkışık) değiştirme düğmesi. */
+  density?: boolean
+  /** Sütun görünürlük seçicisi — `ColumnDef.hideable` sütunları için. */
+  columns?: boolean
+  /** Sütun-içi filtre satırını açan düğme — `ColumnDef.filterable` sütunları için. */
+  filters?: boolean
+}
+
+/**
+ * Tek bir sıralama kuralı: sütun + yön. Çoklu (yönetilen) sıralamada bir dizi
+ * olarak öncelik sırasıyla uygulanır — ilk kural birincil, sonrakiler eşitlik
+ * bozucu.
+ */
+export interface SortRule {
+  columnId: string
+  direction: 'asc' | 'desc'
+}
+
 export interface DataTableProps<T extends { id: string }> {
   /**
    * Gösterilecek satırlar; **sıralanmış ve sayfalanmış hâlde** gelir. Tablo veriyi
@@ -1705,9 +1759,18 @@ export interface DataTableProps<T extends { id: string }> {
    * listelerde taramayı hızlandırır; dokunma hedefini küçülttüğü için mobilde
    * `comfortable` tercih edilir.
    *
+   * Araç çubuğunda yoğunluk düğmesi (`toolbar.density`) açıkken bu değer
+   * **başlangıç** değeri gibi davranır: `onDensityChange` verilmezse tablo
+   * seçimi kendi tutar (yönetilen), verilirse çağıran tutar (kontrollü).
+   *
    * @default 'comfortable'
    */
   density?: 'comfortable' | 'compact'
+  /**
+   * Tablonun kendi araç çubuğunda hangi kontrollerin görüneceği. Verilmezse araç
+   * çubuğu hiç çizilmez — bugünkü tüketiciler etkilenmez.
+   */
+  toolbar?: DataTableToolbar
   /**
    * Satırların birbirinden nasıl ayrıldığı. `striped` çok sütunlu tabloda gözün
    * satırı kaydırmasını önler.
@@ -1763,6 +1826,16 @@ export interface DataTableProps<T extends { id: string }> {
    */
   sort?: { columnId: string; direction: 'asc' | 'desc' }
   /**
+   * Çoklu sıralama kuralları (öncelik sırasıyla). Eski tek-kolon `sort`'un çoklu
+   * karşılığı; ikisi birlikte verilmez.
+   *
+   * - `onSortRulesChange` verilirse **kontrollü** (çağıran tutar, veriyi kendi sıralar).
+   * - Verilmezse **başlangıç** değeri olur ve tablo `sortAccessor` ile client-side
+   *   **yönetilen** sıralama yapar; başlığa shift+tık ikincil kural ekler, başlıkta
+   *   öncelik rozeti (1, 2…) görünür.
+   */
+  sortRules?: SortRule[]
+  /**
    * Kaydırırken başlık üstte kalır. Uzun listede sütunun ne olduğu unutulmaz.
    * @default false
    */
@@ -1774,6 +1847,37 @@ export interface DataTableProps<T extends { id: string }> {
    * yönü çevirir.
    */
   onSortChange?: (sort: { columnId: string; direction: 'asc' | 'desc' }) => void
+  /**
+   * Çoklu sıralama kuralları değiştiğinde çalışır (kontrollü kullanım). Verilirse
+   * tablo sıralamaz, sıralı `rows`'u geri bekler.
+   */
+  onSortRulesChange?: (sortRules: SortRule[]) => void
+  /**
+   * Sütun-içi filtre değerleri (`columnId` → değer). Boş/eksik değer o sütunda
+   * filtre yok demektir. `onColumnFiltersChange` verilirse **kontrollü** (çağıran
+   * süzer), verilmezse **başlangıç** değeri olur ve tablo `filterAccessor` ile
+   * client-side **yönetilen** filtreleme yapar.
+   */
+  columnFilters?: Record<string, string>
+  /** Sütun filtreleri değiştiğinde çalışır (kontrollü kullanım). */
+  onColumnFiltersChange?: (columnFilters: Record<string, string>) => void
+  /**
+   * Araç çubuğundaki yoğunluk düğmesi değiştirildiğinde çalışır. Verilirse yoğunluk
+   * **kontrollü** olur (çağıran `density`'yi günceller); verilmezse tablo seçimi
+   * kendi tutar (yönetilen). `toolbar.density` açık değilse anlamsızdır.
+   */
+  onDensityChange?: (density: 'comfortable' | 'compact') => void
+  /**
+   * Gizlenmiş sütun kimlikleri. Sütun görünürlük seçicisi (`toolbar.columns`)
+   * yalnız `ColumnDef.hideable` sütunlarını listeler; buradaki id'ler render'dan
+   * çıkarılır. `onHiddenColumnsChange` verilirse **kontrollü** (çağıran tutar),
+   * verilmezse **başlangıç** değeri olur ve tablo seçimi kendi tutar (yönetilen).
+   * Hideable olmayan sütunlar her zaman görünür kalır; ayrıca en az bir sütun
+   * her zaman görünür bırakılır (son görünür sütunun kutusu kilitlenir).
+   */
+  hiddenColumnIds?: string[]
+  /** Sütun görünürlüğü değiştiğinde çalışır (kontrollü kullanım). */
+  onHiddenColumnsChange?: (hiddenColumnIds: string[]) => void
   /**
    * Satıra tıklandığında çalışır; verilirse satır tıklanabilir görünür. Seçim
    * kutusuna tıklamak bunu tetiklemez.
@@ -5135,4 +5239,67 @@ export interface AuthScreenProps {
    * bir hata geçici olabilir, 403 olmaz.
    */
   onPrimaryAction?: () => void
+}
+
+/**
+ * Base UI `menu` üstüne kurulu genel amaçlı açılır menü.
+ *
+ * Repoda tetikleyici-butonlu bir dropdown primitive'i yoktu (AGENTS: "DropdownMenu
+ * primitive'i yok, gerekiyorsa eklenmeli"); DataTable'ın sütun görünürlük seçicisi
+ * ve benzeri toolbar menüleri için eklendi. Erişilebilir menü davranışını (ok
+ * tuşları, Esc, `role="menu"`, `aria-checked`) Base UI sağlar; bu katman yalnız
+ * görünümü ve tetikleyiciyi verir.
+ */
+export interface DropdownMenuProps {
+  /**
+   * Tetikleyici butonun **içeriği** (ikon + metin). Buton kabuğunu (kenarlık,
+   * dolgu, odak halkası) primitive kurar; tüketici yalnız içeriği verir.
+   */
+  trigger: ReactNode
+  /** Menü öğeleri: `DropdownMenuItem` ve/veya `DropdownMenuCheckboxItem`. */
+  children: ReactNode
+  /**
+   * Tetikleyicinin erişilebilir adı. İçerik yalnız ikon olduğunda **zorunlu**:
+   * aksi hâlde ekran okuyucu kullanıcısı butonun ne açtığını bilemez.
+   */
+  label?: string
+  /**
+   * Menünün tetikleyiciye göre yatay hizası.
+   * @default 'start'
+   */
+  align?: 'start' | 'center' | 'end'
+  /** Kontrollü açık/kapalı durumu; verilmezse menü kendi durumunu tutar. */
+  open?: boolean
+  /** Açık durum değiştiğinde çalışır (kontrollü kullanım). */
+  onOpenChange?: (open: boolean) => void
+  /** Tetikleyiciyi devre dışı bırakır. */
+  disabled?: boolean
+}
+
+/** `DropdownMenu` içindeki tıklanabilir eylem öğesi. */
+export interface DropdownMenuItemProps {
+  children: ReactNode
+  /** Öğe tıklandığında çalışır. */
+  onSelect?: () => void
+  disabled?: boolean
+  /**
+   * Öğe seçilince menü kapansın mı.
+   * @default true
+   */
+  closeOnClick?: boolean
+}
+
+/**
+ * `DropdownMenu` içindeki işaretlenebilir öğe (sütun görünürlük toggle'ı gibi).
+ *
+ * Varsayılan olarak **menüyü kapatmaz** (`closeOnClick: false`): birden çok öğe
+ * arka arkaya işaretlenir (ör. birkaç sütunu birden aç/kapat).
+ */
+export interface DropdownMenuCheckboxItemProps {
+  children: ReactNode
+  checked: boolean
+  onCheckedChange: (checked: boolean) => void
+  disabled?: boolean
+  /** @default false */
+  closeOnClick?: boolean
 }

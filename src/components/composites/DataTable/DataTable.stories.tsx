@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn, userEvent, within } from 'storybook/test'
+import { expect, fireEvent, fn, userEvent, within } from 'storybook/test'
 import type { ColumnDef } from '../../../types/component-props'
 import type { Listing } from '../../../types/domain'
 import { LISTING_CATEGORY_LABEL, TRANSACTION_TYPE_LABEL } from '../../../domain/labels'
@@ -16,7 +16,14 @@ import { DataTable } from './DataTable'
  * derleme hatası verir.
  */
 const SUTUNLAR: ColumnDef<Listing>[] = [
-  { id: 'listingNo', header: 'İlan no', accessor: 'listingNo', sortable: true, width: '9rem' },
+  {
+    id: 'listingNo',
+    header: 'İlan no',
+    accessor: 'listingNo',
+    sortable: true,
+    filterable: true,
+    width: '9rem',
+  },
   {
     id: 'title',
     header: 'Başlık',
@@ -34,17 +41,22 @@ const SUTUNLAR: ColumnDef<Listing>[] = [
       </span>
     ),
     sortable: true,
+    sortAccessor: (row) => row.title,
+    filterable: true,
+    filterAccessor: (row) => row.title,
   },
   {
     id: 'category',
     header: 'Kategori',
     cell: (row) =>
       `${LISTING_CATEGORY_LABEL[row.category]} · ${TRANSACTION_TYPE_LABEL[row.transactionType]}`,
+    hideable: true,
   },
   {
     id: 'location',
     header: 'Konum',
     cell: (row) => `${row.location.districtName}, ${row.location.cityName}`,
+    hideable: true,
   },
   {
     id: 'price',
@@ -52,6 +64,7 @@ const SUTUNLAR: ColumnDef<Listing>[] = [
     cell: (row) => formatCurrency(row.price),
     sortable: true,
     align: 'end',
+    sortAccessor: (row) => row.price.amount,
   },
   {
     id: 'status',
@@ -65,6 +78,8 @@ const SUTUNLAR: ColumnDef<Listing>[] = [
     cell: (row) => row.metrics.reportCount,
     align: 'center',
     sortable: true,
+    hideable: true,
+    sortAccessor: (row) => row.metrics.reportCount,
   },
 ]
 
@@ -362,4 +377,171 @@ export const VariantsComparison: Story = {
       />
     </div>
   ),
+}
+
+/**
+ * Dahili araç çubuğu + yoğunluk anahtarı (P1).
+ *
+ * `toolbar={{ density: true }}` verilince tablo kendi araç çubuğunu çizer;
+ * `onDensityChange` verilmediği için yoğunluğu **kendisi yönetir** (yönetilen mod).
+ */
+export const ToolbarDensity: Story = {
+  args: { toolbar: { density: true }, visualStyle: 'bordered' },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement)
+
+    await step('Rahat başlangıçta seçili', async () => {
+      await expect(canvas.getByRole('button', { name: 'Rahat' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+    })
+
+    await step('Sıkışık’a basınca seçim ona geçer', async () => {
+      await userEvent.click(canvas.getByRole('button', { name: 'Sıkışık' }))
+      await expect(canvas.getByRole('button', { name: 'Sıkışık' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+      await expect(canvas.getByRole('button', { name: 'Rahat' })).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      )
+    })
+  },
+}
+
+/**
+ * Sütun görünürlük seçici (P2).
+ *
+ * `toolbar={{ columns: true }}` araç çubuğuna "Sütunlar" menüsü ekler; menü yalnız
+ * `hideable` sütunları listeler (Kategori, Konum, Şikayet). `onHiddenColumnsChange`
+ * verilmediği için görünürlüğü tablo kendi yönetir. Son görünür sütun kilitlenir.
+ */
+export const ColumnVisibility: Story = {
+  args: { toolbar: { columns: true, density: true }, visualStyle: 'bordered' },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement)
+
+    await step('Kategori sütunu başta görünür', async () => {
+      await expect(canvas.getByRole('columnheader', { name: 'Kategori' })).toBeVisible()
+    })
+
+    await step('Menüden Kategori’yi gizle', async () => {
+      await userEvent.click(canvas.getByRole('button', { name: 'Sütunları göster veya gizle' }))
+      const body = within(document.body)
+      // Menü portal’a async açılır — `findByRole` DOM’a girene kadar bekler.
+      await userEvent.click(await body.findByRole('menuitemcheckbox', { name: 'Kategori' }))
+    })
+
+    await step('Kategori sütunu artık yok', async () => {
+      await expect(canvas.queryByRole('columnheader', { name: 'Kategori' })).toBeNull()
+      // Diğer sütunlar duruyor: gizleme tabloyu bozmadı.
+      await expect(canvas.getByRole('columnheader', { name: 'İlan no' })).toBeVisible()
+    })
+  },
+}
+
+/**
+ * Yönetilen çoklu sıralama (P3).
+ *
+ * `onSortChange` VERİLMEZ; tablo `sortAccessor` ile client-side sıralar. Başlığa
+ * tık asc → desc → (kaldır) döngüsü; **shift+tık** ikincil kural ekler ve
+ * başlıklarda öncelik rozeti (1, 2…) belirir. Eski tek-kolon kontrollü sıralama
+ * (`Sorted` story) değişmeden çalışmaya devam eder.
+ */
+export const ManagedMultiSort: Story = {
+  args: { visualStyle: 'bordered', toolbar: { density: true } },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement)
+    const ilkListingNo = () =>
+      canvas.getAllByRole('row')[1]?.querySelector('td')?.textContent?.trim()
+
+    await step('Fiyat’a tıklamak satırları yeniden sıralar', async () => {
+      const oncekiIlk = ilkListingNo()
+      await userEvent.click(canvas.getByRole('button', { name: /Fiyat/ }))
+      await expect(canvas.getByRole('columnheader', { name: /Fiyat/ })).toHaveAttribute(
+        'aria-sort',
+        'ascending',
+      )
+      // İlk satır değişti: client-side sıralama gerçekten uygulandı.
+      await expect(ilkListingNo()).not.toBe(oncekiIlk)
+    })
+
+    await step('Aynı başlık ikinci tık: azalan', async () => {
+      await userEvent.click(canvas.getByRole('button', { name: /Fiyat/ }))
+      await expect(canvas.getByRole('columnheader', { name: /Fiyat/ })).toHaveAttribute(
+        'aria-sort',
+        'descending',
+      )
+    })
+
+    await step('Shift+tık ikincil kural ekler, öncelik rozetleri belirir', async () => {
+      // `userEvent` click’i shiftKey’i güvenilir taşımıyor; `fireEvent` doğrudan geçirir.
+      await fireEvent.click(canvas.getByRole('button', { name: /Başlık/ }), { shiftKey: true })
+      // İki başlık da sıralı: Fiyat birincil (desc), Başlık ikincil (asc).
+      await expect(canvas.getByRole('columnheader', { name: /Fiyat/ })).toHaveAttribute(
+        'aria-sort',
+        'descending',
+      )
+      await expect(canvas.getByRole('columnheader', { name: /Başlık/ })).toHaveAttribute(
+        'aria-sort',
+        'ascending',
+      )
+    })
+  },
+}
+
+/**
+ * Sütun-içi filtreler (P4).
+ *
+ * `toolbar={{ filters: true }}` başlığın altına, `filterable` sütunlar için (İlan
+ * no, Başlık) bir metin filtre satırı ekler. `onColumnFiltersChange` verilmediği
+ * için tablo `filterAccessor` ile client-side süzer — girilen değer alt dize
+ * (büyük/küçük harf duyarsız) olarak eşleştirilir; sonuç boşsa `emptyState` çıkar.
+ */
+export const ColumnFilters: Story = {
+  args: { toolbar: { filters: true, density: true }, visualStyle: 'bordered' },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement)
+    const satirSayisi = () => canvas.getAllByRole('row').length
+
+    await step('Başlığa "villa" yazınca satırlar süzülür', async () => {
+      const oncekiSatir = satirSayisi()
+      const filtre = canvas.getByRole('textbox', { name: 'Başlık filtresi' })
+      await userEvent.type(filtre, 'villa')
+      // Daha az satır kaldı ve kalanların hepsi "villa" içeriyor.
+      await expect(satirSayisi()).toBeLessThan(oncekiSatir)
+      const hucreler = canvas.getAllByRole('cell')
+      const villaVar = hucreler.some((c) => /villa/i.test(c.textContent ?? ''))
+      await expect(villaVar).toBe(true)
+    })
+
+    await step('Filtre temizlenince satırlar geri gelir', async () => {
+      const filtre = canvas.getByRole('textbox', { name: 'Başlık filtresi' })
+      await userEvent.clear(filtre)
+      await expect(satirSayisi()).toBeGreaterThan(3)
+    })
+  },
+}
+
+/**
+ * Tüm gelişmiş yetenekler bir arada: yoğunluk anahtarı, sütun seçici, sütun-içi
+ * filtreler ve yönetilen çoklu sıralama (shift+tık). Hiçbir `on*Change` verilmez —
+ * tablo hepsini kendi yönetir (yönetilen mod). Kontrollü kullanımda ilgili
+ * kanalları bağlayıp veriyi sunucudan sıralı/süzülü getirin.
+ */
+export const AdvancedAllFeatures: Story = {
+  args: {
+    visualStyle: 'bordered',
+    stickyHeader: true,
+    toolbar: { density: true, columns: true, filters: true },
+  },
+  decorators: [
+    (Story) => (
+      <div style={{ maxHeight: '30rem', overflowY: 'auto' }}>
+        <Story />
+      </div>
+    ),
+  ],
 }

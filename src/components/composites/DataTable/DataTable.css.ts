@@ -217,3 +217,112 @@ export const cardRow = style({
     },
   },
 })
+
+/* ── Araç çubuğu (P1+): yoğunluk, sütun seçici, filtre düğmesi ── */
+
+/**
+ * Tablonun üstündeki kontrol şeridi. Dar ekranda (≤30rem) sola yaslanıp sarar;
+ * geniş ekranda sağa yaslı durur — tablo başlığı/özeti ekranın solunda kalır.
+ * `flex-wrap` ile kontroller sığmazsa alt satıra iner (BulkActionBar deseni).
+ */
+export const toolbar = style({
+  display: 'flex',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: vars.space[2],
+  justifyContent: 'flex-end',
+  paddingBlock: vars.space[2],
+  minWidth: 0,
+
+  '@media': {
+    'screen and (max-width: 30rem)': {
+      justifyContent: 'flex-start',
+    },
+  },
+})
+
+/** İki seçenekli yoğunluk anahtarı (rahat/sıkışık). Segmented görünüm. */
+export const segmented = style({
+  display: 'inline-flex',
+  border: `1px solid ${vars.color.action.secondary.border}`,
+  borderRadius: vars.radius.md,
+  overflow: 'hidden',
+})
+
+export const segmentButton = recipe({
+  base: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: vars.space[1],
+    minHeight: vars.control.height.sm,
+    paddingInline: vars.space[3],
+    border: 'none',
+    background: vars.color.action.secondary.bg,
+    color: vars.color.action.secondary.text,
+    fontSize: vars.font.size.sm,
+    fontWeight: vars.font.weight.medium,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    transitionProperty: 'background-color, color',
+    transitionDuration: vars.duration.fast,
+
+    selectors: {
+      '& + &': { borderInlineStart: `1px solid ${vars.color.action.secondary.border}` },
+      '&:hover:not([aria-pressed="true"])': { background: vars.color.action.secondary.hover },
+    },
+  },
+  variants: {
+    active: {
+      /** Seçili yoğunluk: primary zeminle işaretlenir — renk tek gösterge değil, `aria-pressed` de var. */
+      true: {
+        background: vars.color.action.primary.bg,
+        color: vars.color.action.primary.text,
+      },
+      false: {},
+    },
+  },
+  defaultVariants: { active: false },
+})
+
+/** Araç çubuğu düğmelerindeki ikon. */
+export const toolbarIcon = style({
+  flexShrink: 0,
+})
+
+/**
+ * Çoklu sıralamada başlıktaki öncelik rozeti (1, 2…). Yalnız birden çok kural
+ * varken çizilir; hangi sütunun önce sıralandığını gösterir.
+ */
+export const sortOrder = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minWidth: '1rem',
+  height: '1rem',
+  paddingInline: '0.25rem',
+  marginInlineStart: vars.space[1],
+  borderRadius: vars.radius.full,
+  background: vars.color.primary[700],
+  color: vars.color.neutral[0],
+  fontSize: '0.6875rem',
+  fontWeight: vars.font.weight.semibold,
+  fontVariantNumeric: 'tabular-nums',
+  lineHeight: 1,
+})
+
+/**
+ * Başlığın altındaki filtre satırı. Hücreler başlıkla hizalı (aynı grid) ve
+ * `thead` içinde durduğu için `stickyHeader` ile birlikte üstte kalır. Zemin
+ * başlıkla aynı ki filtre alanı başlığın parçası gibi okunsun.
+ */
+export const filterRow = style({
+  background: vars.color.bg.subtle,
+})
+
+export const filterCell = style({
+  paddingInline: vars.space[2],
+  paddingBlock: vars.space[2],
+  borderBlockEnd: `1px solid ${vars.color.border.default}`,
+  verticalAlign: 'middle',
+})
