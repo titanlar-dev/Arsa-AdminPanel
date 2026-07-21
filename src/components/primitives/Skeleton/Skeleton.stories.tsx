@@ -40,19 +40,19 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Text: Story = {
-  args: { width: '20rem' },
+  args: { width: 'min(100%, 20rem)' },
 }
 
 export const MultilineText: Story = {
-  args: { lines: 3, width: '20rem' },
+  args: { lines: 3, width: 'min(100%, 20rem)' },
 }
 
 export const Circle: Story = {
-  args: { variant: 'circle', width: '3rem' },
+  args: { variant: 'circle', width: 'min(100%, 3rem)' },
 }
 
 export const Rectangle: Story = {
-  args: { variant: 'rectangle', width: '20rem', height: '8rem' },
+  args: { variant: 'rectangle', width: 'min(100%, 20rem)', height: '8rem' },
 }
 
 /** Gerçek bir ilan kartının yükleme hali — ölçüler içerikle aynı. */
@@ -61,9 +61,9 @@ export const ListingCardPlaceholder: Story = {
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: '8rem 1fr',
+        gridTemplateColumns: '8rem minmax(0, 1fr)',
         gap: '1rem',
-        width: '28rem',
+        width: 'min(100%, 28rem)',
         padding: '1rem',
         border: '1px solid var(--color-border-subtle)',
         borderRadius: 'var(--radius-lg)',
@@ -83,7 +83,7 @@ export const ListingCardPlaceholder: Story = {
 
 export const VariantsComparison: Story = {
   render: () => (
-    <div style={{ display: 'grid', gap: '1.5rem', width: '22rem' }}>
+    <div style={{ display: 'grid', gap: '1.5rem', width: 'min(100%, 22rem)' }}>
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
         <Skeleton variant="circle" width="2.5rem" />
         <Skeleton variant="text" width="10rem" />

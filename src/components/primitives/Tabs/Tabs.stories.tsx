@@ -108,7 +108,7 @@ export const Overflow: Story = {
   },
   decorators: [
     (Story) => (
-      <div style={{ width: '28rem' }}>
+      <div style={{ maxWidth: '28rem' }}>
         <Story />
       </div>
     ),

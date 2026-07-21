@@ -78,7 +78,7 @@ export const Grid: Story = {
   args: { variant: 'grid' },
   decorators: [
     (Story) => (
-      <div style={{ width: '20rem' }}>
+      <div style={{ maxWidth: '20rem' }}>
         <Story />
       </div>
     ),
@@ -280,7 +280,7 @@ export const VariantsComparison: Story = {
     <div style={{ display: 'grid', gap: '1.5rem' }}>
       <ListingCard {...args} variant="compact" />
       <ListingCard {...args} variant="detailed" showModerationMeta />
-      <div style={{ width: '20rem' }}>
+      <div style={{ maxWidth: '20rem' }}>
         <ListingCard {...args} variant="grid" />
       </div>
     </div>

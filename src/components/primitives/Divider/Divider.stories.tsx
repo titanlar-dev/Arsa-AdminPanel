@@ -39,7 +39,7 @@ type Story = StoryObj<typeof meta>
 
 export const Horizontal: Story = {
   render: (args) => (
-    <div style={{ width: '24rem' }}>
+    <div style={{ maxWidth: '24rem' }}>
       <Divider {...args} />
     </div>
   ),
@@ -48,7 +48,7 @@ export const Horizontal: Story = {
 export const WithLabel: Story = {
   args: { label: 'Moderasyon bilgileri' },
   render: (args) => (
-    <div style={{ width: '24rem' }}>
+    <div style={{ maxWidth: '24rem' }}>
       <Divider {...args} />
     </div>
   ),
@@ -69,7 +69,7 @@ export const Vertical: Story = {
 
 export const VariantsComparison: Story = {
   render: () => (
-    <div style={{ display: 'grid', gap: '1.5rem', width: '24rem' }}>
+    <div style={{ display: 'grid', gap: '1.5rem', width: 'min(100%, 24rem)' }}>
       <Divider />
       <Divider label="Etiketli" />
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'stretch', height: '1.5rem' }}>

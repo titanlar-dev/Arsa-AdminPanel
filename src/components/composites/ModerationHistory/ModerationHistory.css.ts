@@ -74,10 +74,14 @@ export const content = recipe({
   variants: {
     variant: {
       timeline: {},
-      /** Tek satır: etiket, aktör ve saat yan yana; sarar ama yığılmaz. */
+      /**
+       * Etiket, aktör ve saat yan yana; dar ekranda **sarar**, yığılmaz.
+       * `grid-auto-flow: column` tek satıra zorlayıp 320px'de taşırıyordu; `flex`
+       * + `flex-wrap` öğeleri sığmayınca alt satıra indirir.
+       */
       compact: {
-        gridAutoFlow: 'column',
-        gridAutoColumns: 'max-content',
+        display: 'flex',
+        flexWrap: 'wrap',
         justifyContent: 'start',
         alignItems: 'baseline',
         gap: vars.space[2],

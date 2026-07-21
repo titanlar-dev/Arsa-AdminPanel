@@ -49,7 +49,7 @@ const meta = {
 
   decorators: [
     (Story) => (
-      <div style={{ width: '20rem' }}>
+      <div style={{ maxWidth: '20rem' }}>
         <Story />
       </div>
     ),

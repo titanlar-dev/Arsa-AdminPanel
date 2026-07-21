@@ -22,7 +22,7 @@ const SUTUNLAR: ColumnDef<Listing>[] = [
     accessor: 'listingNo',
     sortable: true,
     filterable: true,
-    width: '9rem',
+    width: 'min(100%, 9rem)',
   },
   {
     id: 'title',

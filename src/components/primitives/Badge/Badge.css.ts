@@ -21,7 +21,8 @@ export const badge = recipe({
     fontSize: vars.font.size.sm,
     fontWeight: vars.font.weight.medium,
     lineHeight: vars.lineHeight.tight,
-    whiteSpace: 'nowrap',
+    /** `nowrap` DEĞİL: uzun bir etiket dar ekranda taşmasın, sarsın (Button ile aynı gerekçe). */
+    overflowWrap: 'anywhere',
   },
 
   variants: {

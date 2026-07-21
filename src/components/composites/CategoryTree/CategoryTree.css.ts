@@ -43,6 +43,13 @@ const ODAK_HALKASI = {
 
 export const root = recipe({
   base: {
+    /**
+     * `minWidth: 0`: ağaç bir grid/flex hücresinde (CategoryAttributePage
+     * panosu) durur. Bu olmadan hücrenin `min-width: auto` varsayılanı, ağacı en
+     * uzun kategori adına göre genişletiyor — `label`'ın truncate'i devreye
+     * giremiyor ve uzun adlar 320px'de sayfayı yatay taşırıyordu (long-content).
+     */
+    minWidth: 0,
     color: vars.color.text.primary,
     fontSize: vars.font.size.sm,
   },

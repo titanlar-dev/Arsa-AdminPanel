@@ -18,7 +18,12 @@ export const button = recipe({
     fontSize: vars.font.size.sm,
     fontWeight: vars.font.weight.semibold,
     lineHeight: vars.lineHeight.tight,
-    whiteSpace: 'nowrap',
+    /**
+     * `nowrap` DEĞİL: kısa etiketler zaten tek satır sığar, ama uzun bir etiket
+     * (ör. "Seçili bütün ilanları onayla") 320px'de nowrap ile yatay taşırıyordu.
+     * `overflowWrap: anywhere` uzun etiketi sarar, kısa etikette görsel değişmez.
+     */
+    overflowWrap: 'anywhere',
     cursor: 'pointer',
     transitionProperty: 'background-color, border-color, color, box-shadow',
     transitionDuration: vars.duration.fast,

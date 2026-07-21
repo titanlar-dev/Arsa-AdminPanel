@@ -151,7 +151,7 @@ export const OpensOnKeyboardFocus: Story = {
 export const VariantsComparison: Story = {
   args: { children: <IconButton icon={<Info size={18} />} label="Bilgi" /> },
   render: (args) => (
-    <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2.5rem', alignItems: 'center' }}>
       <Tooltip {...args} placement="top" content="Üst">
         <IconButton icon={<Info size={18} />} label="Üst" />
       </Tooltip>

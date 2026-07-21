@@ -34,6 +34,13 @@ export const pages = style({
   display: 'flex',
   alignItems: 'center',
   gap: vars.space[1],
+  /**
+   * Dar ekranda (320px) çok sayfalı bir sayfalayıcıda 7+ düğme (her biri 44px
+   * dokunma hedefi) tek satıra sığmayıp yatay taşırıyordu. `flex-wrap` ile
+   * düğmeler alt satıra sarar; `justify-content: center` sardığında ortalar.
+   */
+  flexWrap: 'wrap',
+  justifyContent: 'center',
 })
 
 /**
