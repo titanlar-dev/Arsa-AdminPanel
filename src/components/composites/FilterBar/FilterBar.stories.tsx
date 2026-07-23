@@ -1,7 +1,13 @@
 import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, within } from 'storybook/test'
-import type { FilterDefinition, FilterValue, SelectOption } from '../../../types/component-props'
+import type {
+  FilterDefinition,
+  FilterValue,
+  IlceMap,
+  PriceRangePreset,
+  SelectOption,
+} from '../../../types/component-props'
 import { ListingCategory, ListingStatus } from '../../../types/domain'
 import { LISTING_CATEGORY_LABEL, LISTING_STATUS_LABEL } from '../../../domain/labels'
 import { allListingFixtures } from '../../../fixtures'
@@ -328,4 +334,258 @@ export const VariantsComparison: Story = {
       ))}
     </div>
   ),
+}
+
+/* ── Konum filtresi verileri ────────────────────────────────────────────── */
+
+const KONUM_ILLER: SelectOption[] = [
+  { value: '34', label: 'Istanbul' },
+  { value: '06', label: 'Ankara' },
+  { value: '35', label: 'Izmir' },
+  { value: '07', label: 'Antalya' },
+  { value: '16', label: 'Bursa' },
+]
+
+const KONUM_ILCELER: IlceMap = {
+  '34': [
+    { value: '34-kadikoy', label: 'Kadikoy' },
+    { value: '34-besiktas', label: 'Besiktas' },
+    { value: '34-uskudar', label: 'Uskudar' },
+    { value: '34-sariyer', label: 'Sariyer' },
+    { value: '34-bakirkoy', label: 'Bakirkoy' },
+  ],
+  '06': [
+    { value: '06-cankaya', label: 'Cankaya' },
+    { value: '06-kecioren', label: 'Kecioren' },
+    { value: '06-mamak', label: 'Mamak' },
+    { value: '06-etimesgut', label: 'Etimesgut' },
+    { value: '06-sincan', label: 'Sincan' },
+  ],
+  '35': [
+    { value: '35-konak', label: 'Konak' },
+    { value: '35-karsiyaka', label: 'Karsiyaka' },
+    { value: '35-bornova', label: 'Bornova' },
+    { value: '35-buca', label: 'Buca' },
+    { value: '35-cigli', label: 'Cigli' },
+  ],
+  '07': [
+    { value: '07-muratpasa', label: 'Muratpasa' },
+    { value: '07-konyaalti', label: 'Konyaalti' },
+    { value: '07-kepez', label: 'Kepez' },
+    { value: '07-alanya', label: 'Alanya' },
+    { value: '07-manavgat', label: 'Manavgat' },
+  ],
+  '16': [
+    { value: '16-osmangazi', label: 'Osmangazi' },
+    { value: '16-nilufer', label: 'Nilufer' },
+    { value: '16-yildirim', label: 'Yildirim' },
+    { value: '16-gorukle', label: 'Gorukle' },
+    { value: '16-mudanya', label: 'Mudanya' },
+  ],
+}
+
+const FIYAT_PRESETLER: PriceRangePreset[] = [
+  { label: '0-500K', min: 0, max: 500_000 },
+  { label: '500K-1M', min: 500_000, max: 1_000_000 },
+  { label: '1M-5M', min: 1_000_000, max: 5_000_000 },
+  { label: '5M-10M', min: 5_000_000, max: 10_000_000 },
+  { label: '10M+', min: 10_000_000 },
+]
+
+const GAYRIMENKUL_FILTRELER: FilterDefinition[] = [
+  { id: 'query', label: 'Arama', type: 'text', placeholder: 'Ilan no veya baslik' },
+  {
+    id: 'konum',
+    label: 'Konum',
+    type: 'location',
+    iller: KONUM_ILLER,
+    ilceler: KONUM_ILCELER,
+    ilPlaceholder: 'Il secin',
+    ilcePlaceholder: 'Ilce secin',
+  },
+  {
+    id: 'fiyat',
+    label: 'Fiyat (TL)',
+    type: 'priceRange',
+    presets: FIYAT_PRESETLER,
+  },
+  {
+    id: 'categories',
+    label: 'Kategori',
+    type: 'multiSelect',
+    options: secenekler(Object.values(ListingCategory), LISTING_CATEGORY_LABEL),
+    placeholder: 'Tumu',
+  },
+  { id: 'reportedOnly', label: 'Yalniz sikayet edilenler', type: 'boolean' },
+]
+
+/** Konum + fiyat + mevcut filtreler bir arada: gayrimenkul admin paneli senaryosu. */
+export const GayrimenkulFiltreleri: Story = {
+  args: {
+    definitions: GAYRIMENKUL_FILTRELER,
+    values: {
+      konum: { il: '34', ilce: '34-kadikoy' },
+      fiyat: { min: 1_000_000, max: 5_000_000 },
+      categories: [ListingCategory.Residential],
+    },
+  },
+  render: function Render(args) {
+    const [degerler, setDegerler] = useState<Record<string, FilterValue>>(args.values)
+
+    return (
+      <div style={{ display: 'grid', gap: '1rem' }}>
+        <FilterBar
+          {...args}
+          values={degerler}
+          onChange={(id, value) => setDegerler((onceki) => ({ ...onceki, [id]: value }))}
+          onClear={() => setDegerler({})}
+        />
+        <pre
+          style={{
+            fontSize: '0.875rem',
+            padding: '0.75rem',
+            borderRadius: '0.5rem',
+            background: 'var(--color-bg-subtle)',
+            color: 'var(--color-text-muted)',
+            overflowX: 'auto',
+          }}
+        >
+          {JSON.stringify(degerler, null, 2)}
+        </pre>
+      </div>
+    )
+  },
+}
+
+/** Yalniz konum filtresi: il ve ilce bagli acilirlar. */
+export const LocationFilterOnly: Story = {
+  args: {
+    definitions: [
+      {
+        id: 'konum',
+        label: 'Konum',
+        type: 'location',
+        iller: KONUM_ILLER,
+        ilceler: KONUM_ILCELER,
+        ilPlaceholder: 'Il secin',
+        ilcePlaceholder: 'Ilce secin',
+      },
+    ],
+    values: {},
+  },
+  render: function Render(args) {
+    const [degerler, setDegerler] = useState<Record<string, FilterValue>>({})
+
+    return (
+      <div style={{ display: 'grid', gap: '1rem' }}>
+        <FilterBar
+          {...args}
+          values={degerler}
+          onChange={(id, value) => setDegerler((onceki) => ({ ...onceki, [id]: value }))}
+          onClear={() => setDegerler({})}
+        />
+        <pre
+          style={{
+            fontSize: '0.875rem',
+            padding: '0.75rem',
+            borderRadius: '0.5rem',
+            background: 'var(--color-bg-subtle)',
+            color: 'var(--color-text-muted)',
+            overflowX: 'auto',
+          }}
+        >
+          {JSON.stringify(degerler, null, 2)}
+        </pre>
+      </div>
+    )
+  },
+}
+
+/** Fiyat araligi hazir butonlariyla: tek tikla secim. */
+export const PriceRangeWithPresets: Story = {
+  args: {
+    definitions: [
+      {
+        id: 'fiyat',
+        label: 'Fiyat (TL)',
+        type: 'priceRange',
+        presets: FIYAT_PRESETLER,
+      },
+    ],
+    values: {},
+  },
+  render: function Render(args) {
+    const [degerler, setDegerler] = useState<Record<string, FilterValue>>({})
+
+    return (
+      <div style={{ display: 'grid', gap: '1rem' }}>
+        <FilterBar
+          {...args}
+          values={degerler}
+          onChange={(id, value) => setDegerler((onceki) => ({ ...onceki, [id]: value }))}
+          onClear={() => setDegerler({})}
+        />
+        <pre
+          style={{
+            fontSize: '0.875rem',
+            padding: '0.75rem',
+            borderRadius: '0.5rem',
+            background: 'var(--color-bg-subtle)',
+            color: 'var(--color-text-muted)',
+            overflowX: 'auto',
+          }}
+        >
+          {JSON.stringify(degerler, null, 2)}
+        </pre>
+      </div>
+    )
+  },
+}
+
+/**
+ * Konum filtresi baglanti testi: il degistiginde ilce temizlenir.
+ *
+ * Senaryo: Istanbul secilir, Kadikoy secilir, sonra il Ankara'ya degistirilir.
+ * Beklenen: ilce temizlenir (Kadikoy artik gecerli degil).
+ */
+export const LocationCascadingBehavior: Story = {
+  args: {
+    definitions: [
+      {
+        id: 'konum',
+        label: 'Konum',
+        type: 'location',
+        iller: KONUM_ILLER,
+        ilceler: KONUM_ILCELER,
+        ilPlaceholder: 'Il secin',
+        ilcePlaceholder: 'Ilce secin',
+      },
+    ],
+    values: { konum: { il: '34', ilce: '34-kadikoy' } },
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+
+    // Konum filtresi "il" olarak Istanbul secili oldugu icin aktif olmali
+    await expect(canvas.getByText(/1 aktif/)).toBeInTheDocument()
+
+    // Il select'i gorunur olmali
+    const ilSelect = canvas.getByLabelText('Il')
+    await expect(ilSelect).toBeInTheDocument()
+
+    // Ilce select'i gorunur olmali
+    const ilceSelect = canvas.getByLabelText('Ilce')
+    await expect(ilceSelect).toBeInTheDocument()
+
+    // Il degistiginde ilce temizlenmeli — onChange cagrisi kontrol edilir
+    // Il select'ine tikla
+    await userEvent.click(ilSelect)
+
+    // "Ankara" secenegini bul ve tikla
+    const ankaraOption = await within(document.body).findByText('Ankara')
+    await userEvent.click(ankaraOption)
+
+    // onChange cagrilmali: il degisince ilce silinir
+    await expect(args.onChange).toHaveBeenCalledWith('konum', { il: '06' })
+  },
 }

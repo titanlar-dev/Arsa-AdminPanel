@@ -168,7 +168,107 @@ export const mapFrame = style({
   minWidth: 0,
 })
 
-/** İğne `muted`: yer tutucudaki renkli bir işaret gerçek bir marker vaat ederdi. */
+/* ------------------------------------------------------------------ */
+/*  MapPreview styles                                                 */
+/* ------------------------------------------------------------------ */
+
+/** Wrapper for the entire map preview (tiles + overlay + link). */
+export const mapPreviewRoot = style({
+  position: 'relative',
+  display: 'grid',
+  gap: vars.space[2],
+  width: '100%',
+  maxWidth: 512,
+})
+
+/** 2x2 tile grid: 512x512 native pixels, scales down in narrow containers. */
+export const mapTileGrid = style({
+  position: 'relative',
+  display: 'grid',
+  gridTemplateColumns: '1fr 1fr',
+  gridTemplateRows: '1fr 1fr',
+  aspectRatio: '1 / 1',
+  width: '100%',
+  overflow: 'hidden',
+  borderRadius: vars.radius.md,
+  border: `1px solid ${vars.color.border.default}`,
+})
+
+/** Concealed variant: blurred and dimmed tiles. */
+export const mapTileGridConcealed = style({
+  position: 'relative',
+  display: 'grid',
+  gridTemplateColumns: '1fr 1fr',
+  gridTemplateRows: '1fr 1fr',
+  aspectRatio: '1 / 1',
+  width: '100%',
+  overflow: 'hidden',
+  borderRadius: vars.radius.md,
+  border: `1px solid ${vars.color.border.default}`,
+  filter: 'blur(6px) brightness(0.7)',
+  pointerEvents: 'none',
+})
+
+/**
+ * Red pin marker: CSS-only, positioned absolutely within the tile grid.
+ * A 14px red circle with a white border and drop shadow, translated so
+ * its center sits exactly on the coordinate.
+ */
+export const mapPin = style({
+  position: 'absolute',
+  width: 14,
+  height: 14,
+  borderRadius: '50%',
+  background: '#dc2626',
+  border: '2px solid #fff',
+  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.35)',
+  transform: 'translate(-50%, -50%)',
+  zIndex: 1,
+  pointerEvents: 'none',
+})
+
+/** "Konum gizli" overlay centered on top of blurred tiles. */
+export const mapConcealedOverlay = style({
+  position: 'absolute',
+  inset: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: vars.space[1],
+  color: vars.color.text.primary,
+  fontWeight: vars.font.weight.medium,
+  fontSize: vars.font.size.md,
+  zIndex: 1,
+  /**
+   * Semi-transparent backdrop so the text is readable on any tile colour.
+   * Not using `backdrop-filter` because the tiles are already blurred.
+   */
+  background: 'rgba(255, 255, 255, 0.3)',
+  borderRadius: vars.radius.md,
+})
+
+export const mapConcealedSub = style({
+  fontSize: vars.font.size.sm,
+  color: vars.color.text.secondary,
+  fontWeight: vars.font.weight.regular,
+})
+
+/** "Haritada gor" link beneath the tiles. */
+export const mapLink = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: vars.space[1],
+  fontSize: vars.font.size.sm,
+  color: vars.color.text.muted,
+  textDecoration: 'none',
+  ':hover': {
+    color: vars.color.text.primary,
+    textDecoration: 'underline',
+  },
+})
+
+/** Yer tutucudaki ikon: `muted` renkte, renkli bir iğne gerçek marker vaat ederdi. */
 export const mapIcon = style({
   display: 'flex',
   color: vars.color.text.muted,

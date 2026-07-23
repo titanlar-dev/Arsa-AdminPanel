@@ -546,3 +546,70 @@ export const VariantsComparison: Story = {
     </div>
   ),
 }
+
+// --- Arama ve gruplama ------------------------------------------------------
+
+/** Arama kutusu açık: izin adına göre anlık filtreleme. */
+export const SearchableMatrix: Story = {
+  args: { searchable: true, onChange: fn() },
+}
+
+/** İzinler konularına göre gruplandırılmış: başlıklar daraltılabilir. */
+export const GroupedPermissions: Story = {
+  args: { grouped: true, variant: 'readOnly' },
+}
+
+/** Arama ve gruplama birlikte: arama gruplanmış listeyi süzer. */
+export const SearchAndGrouped: Story = {
+  args: { searchable: true, grouped: true, onChange: fn() },
+}
+
+/** Özet satırı: her rolün kaç izne sahip olduğunu gösterir. */
+export const SummaryFooter: Story = {
+  args: { variant: 'readOnly' },
+}
+
+/**
+ * Arama kutusuna yazıldığında satırlar süzülmeli ve eşleşen metin
+ * `<mark>` ile vurgulanmalı.
+ */
+export const SearchFiltersRows: Story = {
+  args: { searchable: true, variant: 'readOnly' },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    /* Arama kutusunu bul ve "onay" yaz. */
+    const aramaKutusu = canvas.getByRole('searchbox')
+    await userEvent.type(aramaKutusu, 'onay')
+
+    /* Debounce sonrası satırların süzülmesini bekle. */
+    await new Promise((r) => setTimeout(r, 300))
+
+    /* "İlan onaylama" satırı görünmeli. */
+    await expect(canvas.getByRole('rowheader', { name: /onay/i })).toBeInTheDocument()
+
+    /* Süzülmüş sayıyı gösteren metin görünmeli. */
+    await expect(canvas.getByText(/yetki gösteriliyor/)).toBeInTheDocument()
+
+    /* Vurgulama: <mark> öğesi bulunmalı. */
+    const marks = canvasElement.querySelectorAll('mark')
+    await expect(marks.length).toBeGreaterThan(0)
+  },
+}
+
+/**
+ * Eşleşme yoksa boş durum mesajı gösterilmeli.
+ */
+export const SearchNoResults: Story = {
+  args: { searchable: true, variant: 'readOnly' },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    const aramaKutusu = canvas.getByRole('searchbox')
+    await userEvent.type(aramaKutusu, 'xyzbulunamaz')
+
+    await new Promise((r) => setTimeout(r, 300))
+
+    await expect(canvas.getByText('Aramanızla eşleşen yetki bulunamadı')).toBeInTheDocument()
+  },
+}

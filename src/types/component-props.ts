@@ -169,6 +169,15 @@ export type AsyncState<T> =
   | { status: 'success'; data: T; stale?: boolean }
 
 /**
+ * Dogrulama durumu: hata, uyari, basari veya dogrulanıyor (asenkron).
+ *
+ * `error` prop'u hala calisir ve onceligi korur: dolu bir `error` her zaman
+ * `validationState='error'` gibi davranir; `validationState` yalniz `error`
+ * bosken devreye girer.
+ */
+export type ValidationState = 'error' | 'warning' | 'success' | 'validating'
+
+/**
  * Dokuz form kontrolünün paylaştığı etiket / yardımcı metin / hata üçlüsü.
  *
  * İşaretlemeyi (etiket–control eşlemesi, `aria-describedby`, `data-invalid`)
@@ -213,6 +222,27 @@ export interface FieldMetaProps {
    * @default false
    */
   required?: boolean
+  /**
+   * Alanin dogrulama durumu: hata disinda uyari, basari ve asenkron dogrulama
+   * (validating) gosterilmesini saglar.
+   *
+   * - `'error'`: Kirmizi kenarlık + hata mesaji (mevcut `error` davranisi).
+   * - `'warning'`: Amber kenarlık + uyari mesaji.
+   * - `'success'`: Yesil kenarlık + basari mesaji.
+   * - `'validating'`: Mavi kenarlık + spinner + "Dogrulanıyor..." metni.
+   *
+   * `error` prop'u doluysa her zaman oncelik alir ve `validationState` yok
+   * sayilir. Bu geriye uyumluluk icindir.
+   */
+  validationState?: ValidationState
+  /**
+   * Dogrulama durumunun altinda gosterilen mesaj. `helperText` ile ayni konumda
+   * ama duruma gore renklendirilir.
+   *
+   * `validationState='validating'` ise ve mesaj verilmezse varsayilan olarak
+   * "Dogrulanıyor..." gosterilir.
+   */
+  validationMessage?: string
 }
 
 export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'color'> {
@@ -691,6 +721,97 @@ export interface MultiSelectProps extends FieldMetaProps {
   maxVisibleTags?: number
   /** Seçim değiştiğinde yeni listenin **tamamıyla** çalışır — fark değil, son hâl. */
   onValuesChange?: (values: string[]) => void
+}
+
+/**
+ * Kademeye ozel secenek yukleme fonksiyonu.
+ *
+ * Esitli (sync) veri icin `SelectOption[]` dogrudan verilir.
+ * Eslenmis (async) veri icin `(parentValue: string) => Promise<SelectOption[]>`
+ * fonksiyonu verilir ve CascadingSelect ust kademe degistiginde cagirip
+ * sonucu otomatik olarak alt kademeye yansitir.
+ */
+export type CascadingOptionSource =
+  | SelectOption[]
+  | ((parentValue: string) => Promise<SelectOption[]>)
+
+/**
+ * Kademeyi tanimlayan yapilandirma nesnesi.
+ *
+ * Her kademe bir Select primitive'i render eder; bu arabirim o Select'e
+ * iletilecek degerlerle birlikte kademe-ozel davranislari (etiket, yer
+ * tutucu, secenekler) tasinir.
+ */
+export interface CascadingSelectLevel {
+  /** Select'in gorunur etiketi. Erisilebilir ad olarak kullanilir. */
+  label: string
+  /** Secim yokken gosterilen metin. */
+  placeholder?: string
+  /**
+   * Secenekler.
+   *
+   * - Kok kademe (level 0): `SelectOption[]` — statik liste.
+   * - Alt kademeler: `SelectOption[]` (statik, ust secime gore filtrelenir)
+   *   veya `(parentValue: string) => Promise<SelectOption[]>` (async yukleme).
+   *
+   * Statik alt kademe durumunda tum secenekler verilir ve `parentKey` alani
+   * ile ust degere eslestirilir.
+   */
+  options: CascadingOptionSource
+  /** `true` ise bu kademe devre disi birakilir. @default false */
+  disabled?: boolean
+  /** Bu kademeye ozgu dogrulama hatasi. */
+  error?: string
+  /** Bu kademeye ozgu yardimci metin. */
+  helperText?: string
+}
+
+/**
+ * Kademeye bagimli (cascading) secim bileseni.
+ *
+ * Il -> Ilce -> Mahalle gibi N kademeli bagimli secimler icin tasarlanmistir.
+ * Her kademe bir `Select` primitive'i render eder; ust kademe degistiginde
+ * alt kademelerin secimi sifirlanir ve secenekleri yeniden yuklenir.
+ *
+ * @example
+ * ```tsx
+ * <CascadingSelect
+ *   levels={[
+ *     { label: 'Il', options: iller },
+ *     { label: 'Ilce', options: (ilValue) => fetchIlceler(ilValue) },
+ *     { label: 'Mahalle', options: (ilceValue) => fetchMahalleler(ilceValue) },
+ *   ]}
+ *   value={[il, ilce, mahalle]}
+ *   onValueChange={(values, level) => { ... }}
+ * />
+ * ```
+ */
+export interface CascadingSelectProps {
+  /** Kademe tanimlari. En az 2 kademe olmalidir. */
+  levels: CascadingSelectLevel[]
+  /**
+   * Her kademenin secili degeri. Dizinin i. elemani i. kademenin degeridir.
+   * Secim yoksa `undefined`.
+   */
+  value?: (string | undefined)[]
+  /**
+   * Herhangi bir kademede secim degistiginde cagirilir.
+   *
+   * @param values - Tum kademelerin guncel degerleri.
+   * @param level - Degisen kademenin indeksi (0-tabanli).
+   */
+  onValueChange?: (values: (string | undefined)[], level: number) => void
+  /**
+   * Kontrol yuksekligi. Tum kademelere uygulanir.
+   * @default 'md'
+   */
+  size?: ControlSize
+  /**
+   * Tum kademeleri devre disi birakir. Kademe bazinda devre disi birakma
+   * icin `CascadingSelectLevel.disabled` kullanin.
+   * @default false
+   */
+  disabled?: boolean
 }
 
 // Brifingden sapma: `onChange` native attribute'lardan çıkarıldı ve yerine
@@ -1679,6 +1800,27 @@ export interface ColumnDef<T> {
    */
   filterAccessor?: (row: T) => string
   /**
+   * Başlık hücresinde sütun-bazlı filtre ikonu (huni) gösterir. Tıklanınca
+   * başlığın altında bir popover açılır; popover içeriği `columnFilterType`'a
+   * göre belirlenir. `filterable` toolbar filtre satırı içindir, bu ise
+   * iStoc B2B tarzı sütun-başlık-içi filtre popover'ıdır.
+   * @default false
+   */
+  columnFilterable?: boolean
+  /**
+   * Sütun filtre popover'ının kontrol tipi.
+   * - `text`: serbest metin arama
+   * - `select`: seçenek listesinden filtreleme
+   * - `number`: min/max aralık girişi
+   * - `date`: tarih aralığı seçimi
+   * @default 'text'
+   */
+  columnFilterType?: 'text' | 'select' | 'number' | 'date'
+  /**
+   * `columnFilterType: 'select'` iken popover'daki seçenekler.
+   */
+  columnFilterOptions?: SelectOption[]
+  /**
    * Sütunun kullanıcı tarafından gizlenebileceğini bildirir (brifing 2.3:
    * "görünür kolonları seçme").
    *
@@ -1725,6 +1867,13 @@ export interface DataTableToolbar {
   columns?: boolean
   /** Sütun-içi filtre satırını açan düğme — `ColumnDef.filterable` sütunları için. */
   filters?: boolean
+  /**
+   * Dışa aktarma düğmesini araç çubuğunda gösterir. `onExport` callback'i ile
+   * birlikte kullanılır; CSV yerleşik `generateCSV` ile üretilebilir, XLSX
+   * üretimi çağıranın sorumluluğundadır.
+   * @default false
+   */
+  export?: boolean
 }
 
 /**
@@ -1863,6 +2012,18 @@ export interface DataTableProps<T extends { id: string }> {
   /** Sütun filtreleri değiştiğinde çalışır (kontrollü kullanım). */
   onColumnFiltersChange?: (columnFilters: Record<string, string>) => void
   /**
+   * Sütun-başlık-içi filtre popover'larından gelen filtre değerleri. Her sütunun
+   * kimliğine göre tipli değer tutar (`text` → string, `number` → { min?, max? },
+   * `select` → string, `date` → { from?, to? }). Verilmezse tablo kendi durumunu
+   * tutar (yönetilen).
+   */
+  columnHeaderFilters?: Record<string, unknown>
+  /**
+   * Sütun-başlık-içi filtre popover'ı uygulandığında çalışır. Tüm aktif
+   * filtrelerin haritasını döndürür.
+   */
+  onColumnHeaderFilterChange?: (filters: Record<string, unknown>) => void
+  /**
    * Araç çubuğundaki yoğunluk düğmesi değiştirildiğinde çalışır. Verilirse yoğunluk
    * **kontrollü** olur (çağıran `density`'yi günceller); verilmezse tablo seçimi
    * kendi tutar (yönetilen). `toolbar.density` açık değilse anlamsızdır.
@@ -1886,6 +2047,55 @@ export interface DataTableProps<T extends { id: string }> {
   onRowClick?: (row: T) => void
   /** `mobileMode="cards"` iken satırın kart görünümü. */
   renderMobileCard?: (row: T) => ReactNode
+  /**
+   * Tüm sayfalardaki toplam satır sayısı. Verilirse başlık kutusuna basıldığında
+   * "Tüm X kaydı seç" banner'ı çıkar — sayfalı tablolarda sayfa-ötesi toplu
+   * seçim bu prop'la etkinleşir.
+   */
+  totalRowCount?: number
+  /**
+   * Tüm sayfalardaki kayıtlar seçildiğinde (`selectAllMode === 'all'`) çalışır.
+   * Sunucu tarafında toplu işlem tetiklemek içindir — tablo tüm satır id'lerini
+   * bilmez, çağıran "hepsini seç" niyetini sunucuya bildirir.
+   */
+  onSelectAllAcrossPages?: () => void
+  /**
+   * Seçimi tamamen temizler (sayfa-ötesi "hepsini seç" dahil). Banner'daki
+   * "Seçimi temizle" bağlantısı ve `selectAllMode` sıfırlama için kullanılır.
+   */
+  onClearSelection?: () => void
+  /**
+   * Mevcut seçim modu: `'page'` yalnız görünür satırlar seçili, `'all'` tüm
+   * sayfalardaki kayıtlar seçili. Çağıran bu durumu tutar; tablo yalnız
+   * banner'ı buna göre çizer.
+   * @default 'page'
+   */
+  selectAllMode?: 'page' | 'all'
+  /**
+   * Dışa aktarma callback'i. `toolbar.export` açıkken araç çubuğunda düğme
+   * çıkar; CSV yerleşik `generateCSV` ile üretilebilir, XLSX çağıranın
+   * sorumluluğundadır.
+   */
+  onExport?: (format: 'csv' | 'xlsx', selectedOnly: boolean) => void
+  /**
+   * Dışa aktarma düğmesini gösterir. `toolbar.export` ile aynı etkiyi verir;
+   * iki yoldan biri yeterlidir.
+   * @default false
+   */
+  exportable?: boolean
+  /**
+   * Satır sanallaştırma (virtualization): yalnız görünür satırlar render edilir.
+   * 10.000+ satırlık tablolarda performansı dramatik artırır.
+   *
+   * - `true`: varsayılan `overscan` (5) ve `estimateSize` (yoğunluğa göre) ile açılır.
+   * - `{ overscan?, estimateSize? }`: ince ayar yapılabilir.
+   * - `false`: kapatır.
+   * - `undefined` (varsayılan): satır sayısı > 100 ise otomatik açılır.
+   *
+   * Kart görünümü (`mobileMode="cards"`) sanallaştırılmaz; yalnız tablo satırları
+   * sanallaştırılır.
+   */
+  virtualize?: boolean | { overscan?: number; estimateSize?: number }
 }
 
 /**
@@ -1904,33 +2114,160 @@ export interface NumberRange {
   max?: number
 }
 
-export type FilterValue =
-  string | number | boolean | string[] | DateRange | NumberRange | null | undefined
+/**
+ * Konum filtresinin değeri (`FilterDefinition.type === 'location'`).
+ *
+ * İl seçilmeden ilçe seçilemez. İl değiştiğinde ilçe otomatik temizlenir.
+ * En az `il` seçiliyse filtre aktif sayılır.
+ */
+export interface LocationValue {
+  /** İl kodu (ör. `"34"` = İstanbul). */
+  il?: string
+  /** İlçe kodu. Yalnız `il` seçiliyken anlamlıdır. */
+  ilce?: string
+}
 
-export interface FilterDefinition {
+/**
+ * Fiyat aralığı filtresinin değeri (`FilterDefinition.type === 'priceRange'`).
+ *
+ * `NumberRange` ile aynı şekilde çalışır ama hazır aralık butonları ve
+ * `tr-TR` para birimi biçimlendirmesi ekler.
+ */
+export interface PriceRangeValue {
+  /** Alt fiyat sınırı, **dahil**. */
+  min?: number
+  /** Üst fiyat sınırı, **dahil**. */
+  max?: number
+}
+
+/**
+ * Fiyat aralığı hazır seçeneklerinden biri.
+ *
+ * `priceRange` filtre tipinde `presets` dizisinin üyesidir. `min` veya `max`
+ * verilmezse o uç sınırsız demektir (ör. "10M+" yalnız `min: 10_000_000`).
+ */
+export interface PriceRangePreset {
+  /** Buton üzerinde gösterilecek kısa etiket (ör. "0-500K"). */
+  label: string
+  /** Alt sınır. Verilmezse alt sınır yok. */
+  min?: number
+  /** Üst sınır. Verilmezse üst sınır yok. */
+  max?: number
+}
+
+export type FilterValue =
+  | string
+  | number
+  | boolean
+  | string[]
+  | DateRange
+  | NumberRange
+  | LocationValue
+  | PriceRangeValue
+  | null
+  | undefined
+
+/**
+ * İl-ilçe eşleme verisi. `location` filtre tipinin `ilceler` alanına verilir.
+ * Anahtar il kodu, değer o ilin ilçe seçenekleridir.
+ */
+export type IlceMap = Record<string, SelectOption[]>
+
+/* ── FilterDefinition ayrımcıl birleşim ────────────────────────────────── */
+
+interface FilterDefinitionBase {
   /** `values` sözlüğündeki anahtar. `onChange`'in ilk argümanı olarak geri döner. */
   id: string
-  /** Alanın görünür etiketi. `numberRange`'de grubun (fieldset) başlığı olur. */
+  /** Alanın görünür etiketi. `numberRange`/`location`/`priceRange`'de grubun başlığı olur. */
   label: string
-  /**
-   * Hangi kontrolün render edileceğini ve `values[id]`'nin hangi şekli
-   * taşıyacağını belirler:
-   *
-   * - `text` → `string`, Input
-   * - `select` → `string`, tekli Select (temizlenebilir)
-   * - `multiSelect` → `string[]`, çip gösteren MultiSelect
-   * - `numberRange` → `NumberRange`, yan yana iki NumberInput
-   * - `dateRange` → `DateRange`, DateRangePicker
-   * - `boolean` → `boolean`, Switch
-   *
-   * Değer beklenen şekilde değilse alan boş kabul edilir, çökmez.
-   */
-  type: 'text' | 'select' | 'multiSelect' | 'numberRange' | 'dateRange' | 'boolean'
-  /** `select` ve `multiSelect` için seçenekler. Diğer tiplerde yok sayılır. */
-  options?: SelectOption[]
-  /** `text`, `select` ve `multiSelect` için boşken görünen metin. Etiket yerine geçmez. */
+}
+
+interface TextFilterDefinition extends FilterDefinitionBase {
+  type: 'text'
   placeholder?: string
 }
+
+interface SelectFilterDefinition extends FilterDefinitionBase {
+  type: 'select'
+  options?: SelectOption[]
+  placeholder?: string
+}
+
+interface MultiSelectFilterDefinition extends FilterDefinitionBase {
+  type: 'multiSelect'
+  options?: SelectOption[]
+  placeholder?: string
+}
+
+interface NumberRangeFilterDefinition extends FilterDefinitionBase {
+  type: 'numberRange'
+}
+
+interface DateRangeFilterDefinition extends FilterDefinitionBase {
+  type: 'dateRange'
+}
+
+interface BooleanFilterDefinition extends FilterDefinitionBase {
+  type: 'boolean'
+}
+
+interface LocationFilterDefinition extends FilterDefinitionBase {
+  type: 'location'
+  /**
+   * İl seçenekleri. Her birinin `value`'su il kodu, `label`'ı il adıdır.
+   */
+  iller: SelectOption[]
+  /**
+   * İl koduna göre ilçe seçenekleri. Anahtar il kodu, değer o ilin
+   * ilçe `SelectOption[]` dizisidir.
+   */
+  ilceler: IlceMap
+  /** İl alanının boşken görünen metni. */
+  ilPlaceholder?: string
+  /** İlçe alanının boşken görünen metni. */
+  ilcePlaceholder?: string
+}
+
+interface PriceRangeFilterDefinition extends FilterDefinitionBase {
+  type: 'priceRange'
+  /**
+   * Hazır aralık butonları. Verilmezse butonlar gösterilmez.
+   *
+   * @example
+   * [
+   *   { label: '0-500K', min: 0, max: 500_000 },
+   *   { label: '10M+', min: 10_000_000 },
+   * ]
+   */
+  presets?: PriceRangePreset[]
+}
+
+/**
+ * Filtre alanı tanımı. Ayrımcıl birleşim (discriminated union) olarak
+ * yapılandırılmıştır: `type` alanı hangi ek alanların geçerli olduğunu belirler.
+ *
+ * Mevcut tipler:
+ *
+ * - `text` → `string`, Input
+ * - `select` → `string`, tekli Select (temizlenebilir)
+ * - `multiSelect` → `string[]`, çip gösteren MultiSelect
+ * - `numberRange` → `NumberRange`, yan yana iki NumberInput
+ * - `dateRange` → `DateRange`, DateRangePicker
+ * - `boolean` → `boolean`, Switch
+ * - `location` → `LocationValue`, iki bağlı Select (il + ilce)
+ * - `priceRange` → `PriceRangeValue`, iki NumberInput + hazır aralık butonları
+ *
+ * Deger beklenen sekilde degilse alan bos kabul edilir, cokmez.
+ */
+export type FilterDefinition =
+  | TextFilterDefinition
+  | SelectFilterDefinition
+  | MultiSelectFilterDefinition
+  | NumberRangeFilterDefinition
+  | DateRangeFilterDefinition
+  | BooleanFilterDefinition
+  | LocationFilterDefinition
+  | PriceRangeFilterDefinition
 
 export interface FilterBarProps {
   /** Gösterilecek filtre alanları, verilen sırayla render edilir. */
@@ -2285,6 +2622,19 @@ export interface ImageGalleryProps {
    * neden olduğunu görmeli. Not opsiyoneldir ve gerekçeyi somutlaştırır.
    */
   onPhotoReject?: (photoId: string, reason: RejectionReason, note?: string) => void
+
+  /* ── Toplu moderasyon ────────────────────────────────────────────────── */
+
+  /**
+   * Bekleyen fotoğrafların tamamını tek seferde onaylar.
+   * Verilmezse toplu onay butonu render edilmez.
+   */
+  onBatchApprove?: (photoIds: string[]) => void
+  /**
+   * Bekleyen (veya seçili) fotoğrafların tamamını tek seferde reddeder.
+   * Gerekçe tüm fotoğraflara ortaktır. Verilmezse toplu red butonu render edilmez.
+   */
+  onBatchReject?: (photoIds: string[], reason: string, note?: string) => void
 }
 
 export interface StatCardProps {
@@ -2524,6 +2874,17 @@ export interface RejectionReasonPickerProps {
   disabled?: boolean
   /** Doğrulama hatası. Verilirse gerekçe grubunun altında kırmızı gösterilir. */
   error?: string
+  /**
+   * Otomatik kontrol sonuçlarından türetilen gerekçe önerileri.
+   *
+   * Verilirse el ile seçim listesinin üstünde "Önerilen Sebepler" bölümü
+   * gösterilir. `checkToReason.ts`'teki `mapChecksToSuggestions` ile üretilir.
+   */
+  suggestedReasons?: {
+    reason: RejectionReason
+    confidence: 'high' | 'medium' | 'low'
+    source: string
+  }[]
   /** Gerekçe seçimi değiştiğinde yeni listenin tamamıyla çalışır. */
   onValueChange: (reasons: RejectionReason[]) => void
   /** Not her tuş vuruşunda bildirilir; geciktirme çağıranın işi. */
@@ -2789,6 +3150,20 @@ export interface RolePermissionMatrixProps {
    * kaydetmek çağıranın işi.
    */
   onChange?: (role: AdminRole, permission: AdminPermission, enabled: boolean) => void
+  /**
+   * `true` iken matrisin üstünde bir arama kutusu gösterilir; izin satırları
+   * yazılan metne göre süzülür (Türkçe locale, büyük/küçük harf duyarsız).
+   *
+   * @default false
+   */
+  searchable?: boolean
+  /**
+   * `true` iken izinler önek grubuna göre başlıklar altında toplanır.
+   * Grup başlıkları daraltılabilir (tıklanarak açılıp kapatılır).
+   *
+   * @default false
+   */
+  grouped?: boolean
 }
 
 export interface CategoryTreeNode {
@@ -2858,6 +3233,21 @@ export interface CategoryTreeProps {
   onSelect: (id: string) => void
   /** Bir düğüm açılıp kapandığında açık id listesinin **tamamıyla** çalışır. */
   onExpandedIdsChange: (ids: string[]) => void
+  /**
+   * `true` ise ağacın üzerinde bir arama kutusu gösterir. Kullanıcı yazdıkça
+   * kategoriler istemci tarafında süzülür (Türkçe locale, büyük/küçük harf
+   * duyarsız). Eşleşen düğümler ve ataları kalır, geri kalanlar gizlenir.
+   *
+   * @default false
+   */
+  searchable?: boolean
+  /**
+   * `true` ise ağacın üzerinde "Tümünü aç / Tümünü kapat" denetim butonları
+   * gösterir.
+   *
+   * @default false
+   */
+  showExpandControls?: boolean
 }
 
 export interface AttributeEditorProps {
@@ -3124,6 +3514,23 @@ export interface ModerationHistoryProps {
    * @default false
    */
   empty?: boolean
+  /**
+   * Dışa aktarma butonlarını gösterir (CSV / JSON).
+   *
+   * Uyumluluk ve denetim ihtiyaçları için moderasyon geçmişini dosya olarak
+   * indirmeye izin verir. Butonlar başlık alanının sağ üstüne yerleşir.
+   *
+   * @default false
+   */
+  exportable?: boolean
+  /**
+   * Dışa aktarma tetiklendiğinde çağrılır.
+   *
+   * Verilirse yerleşik indirme yerine bu callback çalıştırılır — çağıran
+   * özelleştirilmiş dışa aktarma (ör. sunucu tarafı log, analitik) yapabilir.
+   * Verilmezse varsayılan tarayıcı indirmesi kullanılır.
+   */
+  onExport?: (format: 'csv' | 'json', events: ModerationEvent[]) => void
 }
 
 export interface ListingFactsProps {
@@ -3309,6 +3716,54 @@ export interface SellerPanelProps {
    * Yetkisiz eylemler buraya hiç konmamalıdır — panel yetki bilmez.
    */
   actions?: ReactNode
+  /**
+   * Hesabın hesaplanmış risk skoru ve seviyesi.
+   *
+   * Yalnız `risk` varyantında görünür. Skor 0–100 arasıdır; seviye
+   * (`low`/`medium`/`high`/`critical`) sunucu tarafından belirlenir ve panel
+   * bu eşleşmeyi doğrulamaz — sunucunun hükmüdür.
+   *
+   * Verilmezse risk skoru bölümü hiç render edilmez.
+   */
+  riskScore?: {
+    value: number
+    level: 'low' | 'medium' | 'high' | 'critical'
+  }
+  /**
+   * Dolandırıcılık sinyalleri — satıcının davranış kalıplarından türetilen
+   * göstergeler.
+   *
+   * Yalnız `risk` varyantında görünür. Her gösterge kendi eşik değerine göre
+   * `normal`/`warning`/`danger` ciddiyet rozeti alır. Verilmezse bölüm hiç
+   * render edilmez.
+   *
+   * Eşikler panelin içindedir (sunucu skoru, panel göstergeyi renklendirir):
+   * - `listingDeletionRate > 30%` → danger, `> 15%` → warning
+   * - `priceAnomalyCount > 3` → danger, `> 1` → warning
+   * - `duplicateImageCount > 0` → warning
+   * - `rapidRelisting = true` → warning
+   * - `contactChangeFrequency > 3` → danger, `> 1` → warning
+   */
+  fraudIndicators?: {
+    listingDeletionRate?: number
+    priceAnomalyCount?: number
+    duplicateImageCount?: number
+    rapidRelisting?: boolean
+    contactChangeFrequency?: number
+  }
+  /**
+   * Satıcının etkileşim metrikleri — müşteri iletişim performansı.
+   *
+   * `detailed` ve `risk` varyantlarında görünür. Verilmezse bölüm hiç
+   * render edilmez.
+   *
+   * `avgResponseTime` saat cinsindendir; `responseRate` 0–100 arasında yüzde.
+   */
+  engagementMetrics?: {
+    avgResponseTime?: number
+    inquiryCount?: number
+    responseRate?: number
+  }
 }
 
 export interface PromotionFlagsPanelProps {
@@ -5350,6 +5805,10 @@ export interface DynamicIslandProps {
   items: DynamicIslandItem[]
   /** Genişletilmiş panelin hızlı komutları. Verilmezse bölüm çizilmez. */
   commands?: DynamicIslandCommand[]
+  /** Son ziyaret edilen sayfalar (en fazla 5). Arama boşken "Son Ziyaret Edilenler" olarak gösterilir. */
+  recentItems?: DynamicIslandItem[]
+  /** Son kullanılan komutlar (en fazla 5). Arama boşken "Son Kullanilanlar" olarak gösterilir. */
+  recentCommands?: DynamicIslandCommand[]
   /** Aktif öğenin kimliği; daraltılmış hap onu gösterir, grid'de vurgulanır. */
   activeItemId?: string
   /**
@@ -5395,4 +5854,272 @@ export interface DockProps {
   title?: string
   /** Bir öğe seçilince (tık) çalışır. */
   onSelect?: (item: DockItem, index: number) => void
+}
+
+// ─── Pricing & Promotion Management ──────────────────────────────────────────
+
+/** Promosyon paketinin türü (doping çeşidi). */
+export type PromotionPackageType = 'vitrin' | 'acil' | 'anasayfa' | 'oncelikli' | 'ozel'
+
+/** Bir promosyon paketi (doping) tanımı. */
+export interface PromotionPackage {
+  id: string
+  /** Paketin görünen adı. */
+  name: string
+  /** Doping türü. */
+  type: PromotionPackageType
+  /** Süre (gün). */
+  durationDays: number
+  /** Fiyat (TL, kuruş dahil). */
+  priceTL: number
+  /** Paketin açıklaması. */
+  description?: string
+  /** Paket aktif mi. */
+  active: boolean
+  /** Bu paketi şu an kullanan ilan sayısı. */
+  activeListingCount: number
+}
+
+/** Kupon oluştururken gönderilen veri. */
+export interface CouponInput {
+  /** Kupon kodu. */
+  code: string
+  /** İndirim türü. */
+  discountType: 'percentage' | 'fixed'
+  /** İndirim miktarı (yüzde veya TL). */
+  discountAmount: number
+  /** Geçerlilik başlangıcı (ISO tarih). */
+  validFrom: string
+  /** Geçerlilik bitişi (ISO tarih). */
+  validUntil: string
+  /** Kullanım limiti; 0 = sınırsız. */
+  usageLimit: number
+  /** Uygulanabilir paket kimlikleri. */
+  applicablePackageIds: string[]
+  /** Kupon aktif mi. */
+  active: boolean
+}
+
+/** Mevcut bir kupon kaydı. */
+export interface Coupon extends CouponInput {
+  id: string
+  /** Şu ana kadar kullanılma sayısı. */
+  usedCount: number
+}
+
+/** Promosyon satın alma işlemi. */
+export interface PromotionTransaction {
+  id: string
+  /** İşlem tarihi (ISO). */
+  date: string
+  /** Kullanıcı adı veya kimliği. */
+  userName: string
+  /** Paket adı. */
+  packageName: string
+  /** Ödenen tutar (TL). */
+  amount: number
+  /** Kullanılan kupon kodu; yoksa `undefined`. */
+  couponCode?: string
+}
+
+/** Fiyatlandırma analitik verileri. */
+export interface PricingAnalytics {
+  /** Son 30 günlük günlük gelir. */
+  dailyRevenue: { date: string; amount: number }[]
+  /** Aktif promosyonların türe göre dağılımı. */
+  packageDistribution: { type: string; count: number }[]
+  /** Bu ayın toplam geliri (TL). */
+  monthlyRevenue: number
+  /** Geçen aya göre değişim yüzdesi. */
+  monthlyChange: number
+  /** En popüler paket adı. */
+  popularPackage: string
+  /** Ortalama promosyon süresi (gün). */
+  avgDuration: number
+  /** Son işlemler. */
+  recentTransactions: PromotionTransaction[]
+}
+
+/** Yetki kapıları. */
+export interface PricingCapabilities {
+  canEditPricing: boolean
+  canCreateCoupons: boolean
+  canViewAnalytics: boolean
+}
+
+/**
+ * Fiyatlandırma ve promosyon yönetimi ekranı.
+ *
+ * Üç sekmeli düzen: promosyon paketleri (doping), kupon yönetimi ve
+ * fiyatlandırma analitiği. Veri **prop'tan gelir, çekilmez** — diğer
+ * ekranlarla aynı kalıp.
+ */
+export interface PricingPromotionPageProps {
+  /** Promosyon paketleri listesi. */
+  packages: PromotionPackage[]
+  /** Kupon listesi. */
+  coupons: Coupon[]
+  /** Analitik verileri; verilmezse analitik sekmesi boş görünür. */
+  analytics?: PricingAnalytics
+  /** Paket kaydetme (yeni veya güncelleme). */
+  onSavePackage: (pkg: PromotionPackage) => Promise<void>
+  /** Paket aktif/pasif durumunu değiştirme. */
+  onTogglePackage: (id: string, active: boolean) => Promise<void>
+  /** Kupon oluşturma. */
+  onCreateCoupon: (coupon: CouponInput) => Promise<void>
+  /** Kupon aktif/pasif durumunu değiştirme. */
+  onToggleCoupon: (id: string, active: boolean) => Promise<void>
+  /** Yetki kapıları; verilmezse tümü `true` varsayılır. */
+  capabilities?: PricingCapabilities
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LocationManagementPage
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Konum ağacının tek bir düğümü: il, ilce veya mahalle.
+ *
+ * Hiyerarşi üç seviyeli: il > ilce > mahalle. Her düğüm kendi ilan
+ * istatistiklerini taşır; ağaç toplama yapmaz, sunucu hazır sayıları verir.
+ */
+export interface LocationNode {
+  /** Benzersiz kimlik. */
+  id: string
+  /** Konumun adı (Istanbul, Kadikoy, Moda vb.). */
+  name: string
+  /** Hiyerarşi seviyesi. */
+  level: 'il' | 'ilce' | 'mahalle'
+  /** Konumun aktif olup olmadığı. Pasif konum ilan formunda görünmez. */
+  active: boolean
+  /** Bu konumdaki toplam ilan sayısı. */
+  listingCount: number
+  /** Bu konumdaki aktif ilan sayısı. */
+  activeListingCount: number
+  /** Alt düğümler. Yaprak düğümlerde boş dizi veya `undefined`. */
+  children?: LocationNode[]
+  /** Harita merkezi koordinatları (opsiyonel). */
+  coordinates?: { lat: number; lng: number }
+}
+
+/**
+ * Konum güncellemesi için gönderilen veri.
+ */
+export interface LocationUpdatePayload {
+  id: string
+  name: string
+  active: boolean
+  coordinates?: { lat: number; lng: number }
+}
+
+/**
+ * Konum yönetimi ekranının özet istatistikleri.
+ */
+export interface LocationStats {
+  /** Toplam il sayısı. */
+  totalIl: number
+  /** Toplam ilce sayısı. */
+  totalIlce: number
+  /** Toplam mahalle sayısı. */
+  totalMahalle: number
+  /** Aktif (pasif olmayan) konum sayısı. */
+  activeCount: number
+}
+
+/**
+ * Konum yönetimi ekranı (il/ilce/mahalle hiyerarşisi).
+ *
+ * **Kabuk değil, içerik** ve **veri çekmez** — `CategoryAttributePageProps`
+ * ile aynı kalıp. Geniş ekranda sol panel (ağaç) ve sağ panel (detay) yan
+ * yana; dar ekranda drill-down.
+ */
+export interface LocationManagementPageProps {
+  /** Konum ağacı; il > ilce > mahalle hiyerarşisi. */
+  locations: LocationNode[]
+  /** Seçili konumun kimliği. */
+  selectedLocationId?: string
+  /** Ağaçta bir konuma tıklandığında çalışır. */
+  onSelectLocation: (id: string) => void
+  /** Konum kaydedildiğinde çalışır. */
+  onSaveLocation: (location: LocationUpdatePayload) => Promise<void>
+  /** Konum silindiğinde çalışır. Yalnız aktif ilanı olmayan konumlar silinebilir. */
+  onDeleteLocation: (id: string) => Promise<void>
+  /**
+   * Yeni konum eklendiğinde çalışır.
+   * @param parentId Üst konumun kimliği; il ekleniyorsa `null`.
+   * @param name Yeni konumun adı.
+   * @param level Hiyerarşi seviyesi.
+   */
+  onCreateLocation: (parentId: string | null, name: string, level: 'il' | 'ilce' | 'mahalle') => Promise<void>
+  /** Özet istatistikler; verilmezse istatistik kartları gösterilmez. */
+  stats?: LocationStats
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SellerVerificationPage
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Tek bir dogrulama basvurusu.
+ *
+ * Saticinin kimlik veya isyeri belgesini icerir. Durum makinesi:
+ * beklemede -> inceleniyor -> onaylandi | reddedildi | ek_belge_bekleniyor.
+ */
+export interface VerificationRequest {
+  id: string
+  seller: {
+    id: string
+    name: string
+    email: string
+    phone?: string
+    avatarUrl?: string
+    type: 'bireysel' | 'kurumsal'
+    registeredAt: string
+    listingCount: number
+    activeListingCount: number
+    reportCount: number
+  }
+  documentType: 'kimlik' | 'ehliyet' | 'isyeri_ruhsati' | 'ticaret_sicil'
+  documentImages: { url: string; label: string }[]
+  documentNumber?: string
+  status: 'beklemede' | 'inceleniyor' | 'onaylandi' | 'reddedildi' | 'ek_belge_bekleniyor'
+  priority: 'normal' | 'yuksek' | 'acil'
+  submittedAt: string
+  assignedTo?: string
+  history?: { date: string; action: string; actor: string; note?: string }[]
+}
+
+/**
+ * Satici dogrulama ekraninin prop'lari.
+ *
+ * Veri **cekmez** — tum veriler prop'lardan gelir. ApprovalQueue ile ayni
+ * kalip: sol kuyruk + sag detay bolunmus gorunum.
+ */
+export interface SellerVerificationPageProps {
+  /** Dogrulama basvurularinin listesi. */
+  requests: VerificationRequest[]
+  /** Secili basvurunun kimligi; `undefined` ise hicbir detay gorunmez. */
+  selectedRequestId?: string
+  /** Kuyruktan bir basvuru secildiginde calisir. */
+  onSelectRequest: (id: string) => void
+  /** Basvuruyu onaylar. */
+  onApprove: (id: string) => Promise<void>
+  /** Basvuruyu reddeder; neden zorunlu, not opsiyonel. */
+  onReject: (id: string, reason: string, note?: string) => Promise<void>
+  /** Saticidan ek belge talep eder. */
+  onRequestDocuments: (id: string, message: string) => Promise<void>
+  /** Basvuruyu incelemeyi sahiplenir ("Bana ata"). */
+  onClaimRequest: (id: string) => Promise<void>
+  /** Ozet istatistikleri. Verilmezse istatistik satiri gosterilmez. */
+  stats?: {
+    pending: number
+    approvedToday: number
+    rejectedToday: number
+    avgProcessingTime: number
+  }
+  /** Yetki kapilari. Verilmezse tumu acik varsayilir. */
+  capabilities?: {
+    canApprove: boolean
+    canReject: boolean
+  }
 }

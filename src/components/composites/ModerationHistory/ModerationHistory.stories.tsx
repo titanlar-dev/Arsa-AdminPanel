@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, within } from 'storybook/test'
+import { expect, within, fn, userEvent } from 'storybook/test'
 import { ModerationEventType } from '../../../types/domain'
 import { MODERATION_EVENT_LABEL } from '../../../domain/labels'
 import {
@@ -48,6 +48,7 @@ const meta = {
     variant: 'timeline',
     loading: false,
     empty: false,
+    exportable: false,
   },
 
   argTypes: {
@@ -55,6 +56,7 @@ const meta = {
     events: { control: false },
     loading: { control: 'boolean' },
     empty: { control: 'boolean' },
+    exportable: { control: 'boolean' },
   },
 } satisfies Meta<typeof ModerationHistory>
 
@@ -258,4 +260,41 @@ export const VariantsComparison: Story = {
       ))}
     </div>
   ),
+}
+
+/** Dışa aktarma butonları etkin: CSV ve JSON indirme seçenekleri görünür. */
+export const ExportableHistory: Story = {
+  args: { events: archivedBuildingHistory, exportable: true },
+}
+
+/**
+ * Dışa aktarma menüsü açılır mı testi.
+ *
+ * Dropdown tetikleyicisine tıklar ve menü öğelerinin varlığını doğrular.
+ */
+export const ExportCSV: Story = {
+  args: { events: archivedBuildingHistory, exportable: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    const trigger = canvas.getByRole('button', { name: /dışa aktarma seçenekleri/i })
+    await userEvent.click(trigger)
+
+    // Menü portal üzerinden açılır, bu yüzden `document.body` üzerinden sorgulama yapıyoruz.
+    const body = within(document.body)
+    await expect(body.getByText('CSV olarak dışa aktar')).toBeInTheDocument()
+    await expect(body.getByText('JSON olarak dışa aktar')).toBeInTheDocument()
+  },
+}
+
+/** `onExport` callback'i verilerek yerleşik indirme yerine özel işleyici kullanılır. */
+export const CustomExportHandler: Story = {
+  args: {
+    events: archivedBuildingHistory,
+    exportable: true,
+    onExport: fn((format, events) => {
+      // eslint-disable-next-line no-console
+      console.log(`[onExport] format=${format}, eventCount=${events.length}`)
+    }),
+  },
 }

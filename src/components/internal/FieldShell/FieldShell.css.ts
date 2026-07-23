@@ -76,3 +76,39 @@ export const errorIcon = style({
   flexShrink: 0,
   marginTop: '0.1875rem',
 })
+
+/** Uyari dogrulama mesaji: amber renk. */
+export const validationWarning = style({
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: vars.space[1],
+  margin: 0,
+  fontSize: vars.font.size.sm,
+  color: vars.color.warning[800],
+})
+
+/** Basari dogrulama mesaji: yesil renk. */
+export const validationSuccess = style({
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: vars.space[1],
+  margin: 0,
+  fontSize: vars.font.size.sm,
+  color: vars.color.success[800],
+})
+
+/** Dogrulanıyor durumu mesaji: mavi renk. */
+export const validationValidating = style({
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: vars.space[1],
+  margin: 0,
+  fontSize: vars.font.size.sm,
+  color: vars.color.info[800],
+})
+
+/** Dogrulama ikonu (uyari, basari, dogrulanıyor). */
+export const validationIcon = style({
+  flexShrink: 0,
+  marginTop: '0.1875rem',
+})

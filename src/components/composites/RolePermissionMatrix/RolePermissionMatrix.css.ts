@@ -250,6 +250,95 @@ export const legendItem = style({
   gap: vars.space[1],
 })
 
+// --- Arama kutusu -----------------------------------------------------------
+
+export const searchContainer = style({
+  width: '100%',
+})
+
+export const searchMeta = style({
+  marginBlockStart: vars.space[1],
+  fontSize: vars.font.size.sm,
+  color: vars.color.text.secondary,
+  fontVariantNumeric: 'tabular-nums',
+})
+
+export const emptySearch = style({
+  padding: `${vars.space[6]} ${vars.space[4]}`,
+  textAlign: 'center',
+  color: vars.color.text.secondary,
+  fontSize: vars.font.size.sm,
+})
+
+// --- Grup başlıkları --------------------------------------------------------
+
+export const groupHeader = style({
+  background: vars.color.bg.subtle,
+  cursor: 'pointer',
+  userSelect: 'none',
+  ':hover': {
+    background: vars.color.bg.subtle,
+  },
+})
+
+export const groupHeaderCell = style({
+  padding: `${vars.space[2]} ${vars.space[4]}`,
+  borderBlockEnd: `1px solid ${vars.color.border.default}`,
+  fontWeight: vars.font.weight.semibold,
+  color: vars.color.text.primary,
+  fontSize: vars.font.size.sm,
+  textAlign: 'start',
+})
+
+export const groupToggleIcon = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  marginInlineEnd: vars.space[2],
+  transition: 'transform 150ms ease',
+  verticalAlign: 'middle',
+})
+
+export const groupToggleIconCollapsed = style({
+  transform: 'rotate(-90deg)',
+})
+
+// --- Özet satırı ------------------------------------------------------------
+
+export const summaryRow = style({
+  background: vars.color.bg.subtle,
+  borderBlockStart: `2px solid ${vars.color.border.default}`,
+})
+
+export const summaryHeader = style({
+  padding: `${vars.space[3]} ${vars.space[4]}`,
+  position: 'sticky',
+  insetInlineStart: 0,
+  zIndex: vars.z.sticky,
+  fontWeight: vars.font.weight.semibold,
+  color: vars.color.text.primary,
+  fontSize: vars.font.size.sm,
+  textAlign: 'start',
+  background: vars.color.bg.subtle,
+})
+
+export const summaryCell = style({
+  padding: `${vars.space[3]} ${vars.space[3]}`,
+  textAlign: 'center',
+  fontWeight: vars.font.weight.semibold,
+  fontVariantNumeric: 'tabular-nums',
+  color: vars.color.text.secondary,
+  fontSize: vars.font.size.sm,
+})
+
+// --- Arama vurgulama --------------------------------------------------------
+
+export const highlightMark = style({
+  backgroundColor: vars.color.warning[100],
+  color: 'inherit',
+  borderRadius: vars.radius.sm,
+  padding: '0 1px',
+})
+
 /** Aynı reset gerekçesi: `<p>` tarayıcı margin'iyle gelir ve grid `gap`'ine biner. */
 export const savingBar = style({
   display: 'flex',

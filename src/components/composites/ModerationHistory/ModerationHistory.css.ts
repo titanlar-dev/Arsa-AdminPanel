@@ -1,6 +1,69 @@
-import { style } from '@vanilla-extract/css'
+import { style, globalStyle } from '@vanilla-extract/css'
 import { recipe } from '@vanilla-extract/recipes'
 import { vars } from '@/tokens/contract.css'
+
+/**
+ * Dışa aktarma etkinleştirilmişse sarmalayıcı: başlık + buton üstte, içerik altta.
+ */
+export const exportWrapper = style({
+  display: 'grid',
+  gap: vars.space[3],
+})
+
+/**
+ * Başlık satırı: sol tarafta boşluk (gelecekte başlık eklenebilir),
+ * sağ tarafta dışa aktarma butonu. Mobilde buton tam genişliğe geçer.
+ */
+export const exportHeader = style({
+  display: 'flex',
+  justifyContent: 'flex-end',
+  alignItems: 'center',
+  gap: vars.space[2],
+
+  '@media': {
+    '(max-width: 639px)': {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+    },
+  },
+})
+
+/**
+ * Dışa aktarma düğmesi: menü öğesi içindeki ikon + metin hizalaması.
+ */
+export const exportMenuItem = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: vars.space[2],
+})
+
+/**
+ * Mobilde düğmenin tam genişlik olması için trigger'a eklenen ek sınıf.
+ */
+export const exportTriggerMobile = style({
+  '@media': {
+    '(max-width: 639px)': {
+      width: '100%',
+    },
+  },
+})
+
+/** Tetikleyici buton içindeki ikon + metin hizalaması. */
+export const exportTriggerContent = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: vars.space[2],
+  fontSize: vars.font.size.sm,
+})
+
+/* Mobilde trigger tam genişlik aldığında iç buton da genişlesin. */
+globalStyle(`${exportTriggerMobile} > button`, {
+  '@media': {
+    '(max-width: 639px)': {
+      width: '100%',
+    },
+  },
+})
 
 /**
  * Zaman çizgisi bir `<ol>` — olayların sırası anlamın kendisidir, `<ul>` bunu

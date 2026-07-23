@@ -29,8 +29,22 @@ const EASE_SPRING = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)'
 
 /* ── Keyframes (her animasyon aşağıda reduced-motion ile guard'lı) ── */
 const glassIn = keyframes({
-  from: { opacity: 0, transform: 'translateX(-50%) scale(0.92) translateY(-12px)' },
-  to: { opacity: 1, transform: 'translateX(-50%) scale(1) translateY(0)' },
+  '0%': {
+    opacity: 0,
+    transform: 'translateX(-50%) scaleX(0.35) scaleY(0.08)',
+    maxHeight: '2.5rem',
+    borderRadius: '9999px',
+  },
+  '30%': {
+    opacity: 1,
+    borderRadius: '1.75rem',
+  },
+  '100%': {
+    opacity: 1,
+    transform: 'translateX(-50%) scaleX(1) scaleY(1)',
+    maxHeight: '80vh',
+    borderRadius: '1.5rem',
+  },
 })
 const fadeIn = keyframes({
   from: { opacity: 0 },
@@ -111,7 +125,11 @@ export const trigger = recipe({
   variants: {
     // Panel açıkken hap görsel olarak geri çekilir (expanded kart öne çıkar).
     open: {
-      true: { opacity: 0, pointerEvents: 'none' },
+      true: {
+        opacity: 0,
+        pointerEvents: 'none',
+        transition: `opacity 0.15s ease 0.05s`,
+      },
       false: {},
     },
   },
@@ -146,22 +164,36 @@ export const currentLabel = style({
   color: TEXT_DIM,
 })
 
-/** Hover'da açılan mini-nav noktaları (hap'ın kardeşi, iç içe etkileşim yok). */
-export const miniNav = style({
-  display: 'none',
+/**
+ * Inline nav wrapper inside the pill. Hidden by default (max-width: 0, opacity: 0),
+ * expands on hover via the parent trigger's :hover selector.
+ */
+export const inlineNav = style({
+  display: 'flex',
   alignItems: 'center',
   gap: '0.25rem',
-  marginInlineStart: '0.25rem',
+  maxWidth: 0,
+  opacity: 0,
+  overflow: 'hidden',
+  transition: `max-width 0.4s ${EASE_SPRING}, opacity 0.3s ${EASE_EXPO}`,
 
   '@media': {
-    'screen and (min-width: 40rem)': { display: 'flex' },
+    'screen and (max-width: 39.99rem)': { display: 'none' },
+    '(prefers-reduced-motion: reduce)': { transition: 'none' },
   },
+})
+
+/* Hover'da inlineNav genişler — pillWrapper üzerinden hedeflenir. */
+globalStyle(`${pillWrapper}:hover ${inlineNav}`, {
+  maxWidth: '20rem',
+  opacity: 1,
 })
 
 export const miniDivider = style({
   height: '1px',
   width: '0.75rem',
   background: 'rgba(255, 255, 255, 0.15)',
+  flexShrink: 0,
 })
 
 export const miniDot = recipe({
@@ -172,12 +204,15 @@ export const miniDot = recipe({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: '9999px',
+    flexShrink: 0,
     transition: `transform 0.2s ${EASE_SPRING}, background 0.2s ${EASE_EXPO}`,
     selectors: {
       '&:hover': { transform: 'scale(1.1)', background: FILL },
       '&:focus-visible': { outline: `2px solid ${ACCENT}`, outlineOffset: '1px' },
     },
-    '@media': { '(prefers-reduced-motion: reduce)': { transition: 'none' } },
+    '@media': {
+      '(prefers-reduced-motion: reduce)': { transition: 'none' },
+    },
   },
   variants: {
     active: {
@@ -198,6 +233,7 @@ export const miniMore = style({
   borderRadius: '9999px',
   color: TEXT_GHOST,
   fontSize: '0.5625rem',
+  flexShrink: 0,
 })
 
 /* ── kbd (klavye kısayol rozeti) — projede ilk ── */
@@ -228,7 +264,7 @@ export const backdrop = style({
   background: 'rgba(0, 0, 0, 0.4)',
   backdropFilter: 'blur(4px)',
   WebkitBackdropFilter: 'blur(4px)',
-  animation: `${fadeIn} 0.3s ${EASE_EXPO}`,
+  animation: `${fadeIn} 0.4s ${EASE_EXPO} 0.05s both`,
   '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
 })
 
@@ -247,6 +283,7 @@ export const popup = style({
   scrollbarWidth: 'thin',
   scrollbarColor: 'rgba(255, 255, 255, 0.22) transparent',
   borderRadius: '1.5rem',
+  transformOrigin: 'top center',
   color: TEXT,
   background:
     'linear-gradient(160deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.08) 100%), rgba(120,130,255,0.05)',
@@ -260,7 +297,8 @@ export const popup = style({
     '0 24px 64px rgba(0, 0, 0, 0.4)',
     '0 4px 16px rgba(0, 0, 0, 0.3)',
   ].join(', '),
-  animation: `${glassIn} 0.5s ${EASE_EXPO}`,
+  animation: `${glassIn} 0.5s ${EASE_EXPO} forwards`,
+  willChange: 'transform, opacity, border-radius',
   outline: 'none',
 
   '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
@@ -547,6 +585,121 @@ export const empty = style({
   textAlign: 'center',
   fontSize: '0.75rem',
   color: TEXT_GHOST,
+})
+
+/* ── Son ziyaret edilenler / Son kullanilanlar bölümleri ── */
+
+export const recentSection = style({
+  borderBlockEnd: `1px solid ${HAIRLINE}`,
+  padding: '0.75rem',
+})
+
+export const recentSectionHeader = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.375rem',
+  marginBlockEnd: '0.5rem',
+  paddingInline: '0.25rem',
+  cursor: 'pointer',
+  userSelect: 'none',
+  border: 'none',
+  background: 'transparent',
+  width: '100%',
+})
+
+export const recentSectionIcon = style({
+  color: TEXT_GHOST,
+  flexShrink: 0,
+})
+
+export const recentSectionTitle = style({
+  fontSize: '0.625rem',
+  fontWeight: 500,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: TEXT_GHOST,
+  flex: 1,
+  textAlign: 'start',
+})
+
+export const recentSectionChevron = style({
+  color: TEXT_GHOST,
+  flexShrink: 0,
+  transition: `transform 0.2s ${EASE_EXPO}`,
+  '@media': { '(prefers-reduced-motion: reduce)': { transition: 'none' } },
+})
+
+export const recentSectionChevronCollapsed = style({
+  transform: 'rotate(-90deg)',
+})
+
+export const recentItem = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.75rem',
+  borderRadius: '0.5rem',
+  paddingInline: '0.5rem',
+  paddingBlock: '0.375rem',
+  textDecoration: 'none',
+  cursor: 'pointer',
+  transition: `background 0.2s ${EASE_EXPO}`,
+  selectors: {
+    '&:hover': { background: FILL },
+    '&:focus-visible': { outline: `2px solid ${ACCENT}`, outlineOffset: '1px' },
+  },
+  '@media': { '(prefers-reduced-motion: reduce)': { transition: 'none' } },
+})
+
+export const recentItemIcon = style({
+  display: 'flex',
+  height: '1.75rem',
+  width: '1.75rem',
+  flexShrink: 0,
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '0.375rem',
+  background: FILL,
+  color: TEXT_DIM,
+})
+
+export const recentItemContent = style({
+  display: 'flex',
+  flex: 1,
+  alignItems: 'center',
+  gap: '0.5rem',
+  minWidth: 0,
+})
+
+export const recentItemLabel = style({
+  fontSize: '0.75rem',
+  fontWeight: 500,
+  color: TEXT_DIM,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+})
+
+export const recentTimestamp = style({
+  fontSize: '0.5625rem',
+  color: TEXT_GHOST,
+  flexShrink: 0,
+  whiteSpace: 'nowrap',
+})
+
+export const historyPrefix = style({
+  color: TEXT_GHOST,
+  flexShrink: 0,
+  marginInlineEnd: '-0.25rem',
+})
+
+/** Sik kullanilan (frequently used) yildiz rozeti. */
+export const frequentBadge = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+  color: '#fbbf24',
+  opacity: 0.6,
 })
 
 /* Görsel gizli ama erişilebilir (Dialog.Title gerekliliği için). */

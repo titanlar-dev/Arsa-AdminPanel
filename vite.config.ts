@@ -14,6 +14,16 @@ const dirname =
 export default defineConfig({
   plugins: [react(), vanillaExtractPlugin()],
 
+  base: '/Arsam.net-AdminPanel/',
+
+  server: {
+    port: 3434,
+  },
+
+  preview: {
+    port: 3434,
+  },
+
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

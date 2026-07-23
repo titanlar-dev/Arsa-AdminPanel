@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css'
+import { style, keyframes } from '@vanilla-extract/css'
 import { recipe } from '@vanilla-extract/recipes'
 
 /**
@@ -17,31 +17,31 @@ const ACCENT = '#818cf8'
 const EASE_EXPO = 'cubic-bezier(0.16, 1, 0.3, 1)'
 const EASE_SPRING = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)'
 
-/* Alt-orta sabit yerleşim; iOS home indicator için güvenli alan. */
+/* Sağ-orta sabit yerleşim; dikey dock. */
 export const wrapper = style({
   position: 'fixed',
-  insetInlineStart: '50%',
-  transform: 'translateX(-50%)',
-  insetBlockEnd: 'max(1rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem))',
+  right: '1rem',
+  top: '50%',
+  transform: 'translateY(-50%)',
   zIndex: 40,
-  maxWidth: 'calc(100vw - 2rem)',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   gap: '0.375rem',
 })
 
-/* Cam hap — dock yüzeyi. `flex-end` ile ikonlar büyürken tabandan hizalanır. */
+/* Cam hap — dikey dock yüzeyi. Varsayılan gizli, hover ile sağdan slide-in açılır. */
 export const pill = style({
+  transition: `opacity 0.3s ${EASE_EXPO}, transform 0.3s ${EASE_EXPO}`,
   display: 'flex',
-  alignItems: 'flex-end',
+  flexDirection: 'column',
+  alignItems: 'center',
   gap: '0.25rem',
-  paddingInline: '0.5rem',
-  paddingBlock: '0.5rem',
+  padding: '0.5rem',
   borderRadius: '1rem',
-  maxWidth: '100%',
-  overflowX: 'auto',
-  overflowY: 'visible',
+  maxHeight: 'calc(100vh - 10rem)',
+  overflowY: 'auto',
+  overflowX: 'visible',
   background:
     'linear-gradient(90deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.09) 100%), rgba(120,130,255,0.04)',
   backdropFilter: 'blur(60px)',
@@ -88,11 +88,11 @@ export const iconBox = recipe({
   variants: {
     zoom: {
       normal: { width: '2.5rem', height: '2.5rem' },
-      neighbor: { width: '2.75rem', height: '2.75rem', transform: 'translateY(-0.125rem)' },
+      neighbor: { width: '2.75rem', height: '2.75rem', transform: 'translateX(-0.125rem)' },
       hovered: {
         width: '3rem',
         height: '3rem',
-        transform: 'translateY(-0.5rem)',
+        transform: 'translateX(-0.5rem)',
         background: FILL,
       },
     },
@@ -115,11 +115,13 @@ export const icon = recipe({
   defaultVariants: { big: false },
 })
 
-/* Etiket balonu — üzerine gelince ikonun üstünde belirir. */
+/* Etiket balonu — üzerine gelince ikonun solunda belirir. */
 export const tooltip = recipe({
   base: {
     position: 'absolute',
-    insetBlockStart: '-2rem',
+    right: 'calc(100% + 0.5rem)',
+    top: '50%',
+    transform: 'translateY(-50%)',
     borderRadius: '0.375rem',
     background: 'rgba(255, 255, 255, 0.10)',
     backdropFilter: 'blur(20px)',
@@ -150,6 +152,30 @@ export const focusRing = style({
       outlineOffset: '2px',
       borderRadius: '0.75rem',
     },
+  },
+})
+
+/* Handle bar — sağ kenarda dikey çubuk, yüksekliği pulse eder. */
+const handlePulse = keyframes({
+  '0%, 100%': { height: '3rem', opacity: 0.4 },
+  '50%': { height: '4.5rem', opacity: 0.75 },
+})
+
+export const handle = style({
+  position: 'fixed',
+  right: 0,
+  bottom: '50%',
+  transform: 'translateY(50%)',
+  width: '6px',
+  height: '4rem',
+  borderRadius: '6px 0 0 6px',
+  background: 'rgba(255, 255, 255, 0.55)',
+  zIndex: 9999,
+  animation: `${handlePulse} 2.5s ease-in-out infinite`,
+  transition: `opacity 0.25s ${EASE_EXPO}, height 0.25s ${EASE_EXPO}`,
+
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
   },
 })
 

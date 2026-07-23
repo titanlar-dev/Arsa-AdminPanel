@@ -3,6 +3,22 @@ import { Skeleton } from '../../primitives/Skeleton'
 import type { StatCardProps } from '../../../types/component-props'
 import * as css from './StatCard.css'
 
+/**
+ * Sparkline proplari. `component-props.ts`'e dokunmamak icin kesisim tipi
+ * olarak burada tanimlaniyor — geriye donuk uyumlu bir ektir.
+ */
+interface SparklineProps {
+  /**
+   * Son N doneme ait degerler (ornegin son 7 gun). En az 2 eleman olmali;
+   * daha azinda sparkline render edilmez.
+   */
+  sparklineData?: number[]
+  /** Sparkline icin ozel erisim etiketi. @default "Son 7 gunun trendi" */
+  sparklineLabel?: string
+}
+
+export type StatCardWithSparklineProps = StatCardProps & SparklineProps
+
 type Trend = NonNullable<StatCardProps['trend']>
 type TrendYonu = Trend['direction']
 type TrendDuygusu = Trend['sentiment']
@@ -40,6 +56,110 @@ function YonIkonu({ direction }: { direction: TrendYonu }) {
   if (direction === 'up') return <ArrowUp size={16} aria-hidden="true" />
   if (direction === 'down') return <ArrowDown size={16} aria-hidden="true" />
   return <Minus size={16} aria-hidden="true" />
+}
+
+/* ---------- Sparkline ---------- */
+
+const SPARKLINE_WIDTH = 80
+const SPARKLINE_HEIGHT = 24
+
+/**
+ * Sentiment'e gore cizgi rengini dondurur. Trend varsa onun sentiment'i
+ * kullanilir; yoksa primary renk.
+ */
+function sparklineColor(sentiment: TrendDuygusu | undefined): {
+  stroke: string
+  fillId: string
+} {
+  switch (sentiment) {
+    case 'positive':
+      return { stroke: 'var(--sparkline-positive, #16a34a)', fillId: 'sparkline-fill-positive' }
+    case 'negative':
+      return { stroke: 'var(--sparkline-negative, #dc2626)', fillId: 'sparkline-fill-negative' }
+    default:
+      return { stroke: 'var(--sparkline-neutral, #2563eb)', fillId: 'sparkline-fill-neutral' }
+  }
+}
+
+/**
+ * Veri dizisini SVG path komutlarina donusturur. Basit kubik bezier
+ * interpolasyonu ile yumusak bir egri uretir.
+ *
+ * Y ekseni dizinin min/max degerlerine gore olceklenir; X ekseni
+ * esit aralıklarla dagilir.
+ */
+function buildSparklinePath(data: number[], width: number, height: number): string {
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+  /** Ust ve alt kenardan 2px bosluk birakir; cizgi SVG sinirina yapismaz. */
+  const padding = 2
+  const usableHeight = height - padding * 2
+
+  const points = data.map((v, i) => ({
+    x: (i / (data.length - 1)) * width,
+    y: padding + usableHeight - ((v - min) / range) * usableHeight,
+  }))
+
+  // Kubik bezier ile yumusak egri
+  const segments = points.map((pt, i) => {
+    if (i === 0) return `M ${pt.x},${pt.y}`
+
+    const prev = points[i - 1]!
+    const tension = 0.3
+    const cpx1 = prev.x + (pt.x - prev.x) * tension
+    const cpy1 = prev.y
+    const cpx2 = pt.x - (pt.x - prev.x) * tension
+    const cpy2 = pt.y
+
+    return `C ${cpx1},${cpy1} ${cpx2},${cpy2} ${pt.x},${pt.y}`
+  })
+
+  return segments.join(' ')
+}
+
+/**
+ * Saf SVG sparkline. Eksen, etiket veya tooltip yok — sadece gorsel gosterge.
+ * `role="img"` ile erisim etiketi tasinir.
+ */
+function Sparkline({
+  data,
+  sentiment,
+  label,
+}: {
+  data: number[]
+  sentiment: TrendDuygusu | undefined
+  label: string
+}) {
+  if (data.length < 2) return null
+
+  const { stroke, fillId } = sparklineColor(sentiment)
+  const linePath = buildSparklinePath(data, SPARKLINE_WIDTH, SPARKLINE_HEIGHT)
+
+  // Alan dolgusu icin: ayni path + alta kapatma
+  const areaPath = `${linePath} L ${SPARKLINE_WIDTH},${SPARKLINE_HEIGHT} L 0,${SPARKLINE_HEIGHT} Z`
+
+  return (
+    <span className={css.sparklineWrapper}>
+      <svg
+        width={SPARKLINE_WIDTH}
+        height={SPARKLINE_HEIGHT}
+        viewBox={`0 0 ${SPARKLINE_WIDTH} ${SPARKLINE_HEIGHT}`}
+        role="img"
+        aria-label={label}
+        style={{ display: 'block', flexShrink: 0 }}
+      >
+        <defs>
+          <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={stroke} stopOpacity={0.25} />
+            <stop offset="100%" stopColor={stroke} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <path d={areaPath} fill={`url(#${fillId})`} />
+        <path d={linePath} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  )
 }
 
 /**
@@ -104,7 +224,9 @@ export function StatCard({
   variant = 'plain',
   loading = false,
   onClick,
-}: StatCardProps) {
+  sparklineData,
+  sparklineLabel,
+}: StatCardWithSparklineProps) {
   const yerlesim = variant === 'trend' ? 'emphasized' : 'inline'
   const gosterilenDeger = typeof value === 'number' ? value.toLocaleString('tr-TR') : value
 
@@ -157,6 +279,14 @@ export function StatCard({
 
         {description !== undefined ? <span className={css.description}>{description}</span> : null}
       </span>
+
+      {sparklineData !== undefined && sparklineData.length >= 2 ? (
+        <Sparkline
+          data={sparklineData}
+          sentiment={trend?.sentiment}
+          label={sparklineLabel ?? 'Son 7 gunun trendi'}
+        />
+      ) : null}
     </>
   )
 

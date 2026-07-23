@@ -1,5 +1,15 @@
 import { useId, type ReactNode } from 'react'
-import { Ban, Flag, ShieldAlert, ShieldCheck } from 'lucide-react'
+import {
+  Ban,
+  Copy,
+  Flag,
+  Phone,
+  RefreshCw,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+  TrendingDown,
+} from 'lucide-react'
 import { UserStatus, UserType, type ISODateTime, type UserSanction } from '../../../types/domain'
 import {
   USER_SANCTION_TYPE_LABEL,
@@ -69,6 +79,37 @@ const KURUMSAL_TIPLER: readonly UserType[] = [
 ]
 
 /**
+ * Risk seviyesi → Türkçe etiket. `riskScore.level` sunucudan gelir;
+ * panel yalnız etiketini yazar, eşik uygulamaz.
+ */
+const RISK_SEVIYE_ETIKETI = {
+  low: 'Düşük',
+  medium: 'Orta',
+  high: 'Yüksek',
+  critical: 'Kritik',
+} as const satisfies Record<NonNullable<SellerPanelProps['riskScore']>['level'], string>
+
+/**
+ * Tek bir dolandırıcılık göstergesinin ciddiyet seviyesi.
+ *
+ * Eşikler panelin içindedir — sunucu ham değeri verir, panel renklendirir.
+ * Üç seviye Badge'in üç tonuyla eşlenir: `success`/`warning`/`danger`.
+ */
+type FraudSeverity = 'normal' | 'warning' | 'danger'
+
+const FRAUD_SEVERITY_TONE = {
+  normal: 'success',
+  warning: 'warning',
+  danger: 'danger',
+} as const satisfies Record<FraudSeverity, 'success' | 'warning' | 'danger'>
+
+const FRAUD_SEVERITY_LABEL = {
+  normal: 'Normal',
+  warning: 'Uyarı',
+  danger: 'Tehlike',
+} as const satisfies Record<FraudSeverity, string>
+
+/**
  * Doğrulama etiketi.
  *
  * İki çağıranlı köprü kapandı: `USER_VERIFICATION_LABEL` eklendi ve söz
@@ -110,6 +151,16 @@ function ilanMetni(count: number): string {
 /** `4` → `4 yayında`. Sözleşmenin kelimesi: prop "**yayında** olan ilan sayısı". */
 function yayindaMetni(count: number): string {
   return `${count.toLocaleString('tr-TR')} yayında`
+}
+
+/** Yanıt süresini insan okunur biçime çevirir: `2 saat`, `45 dakika`. */
+function yanitSuresiMetni(saat: number): string {
+  if (saat < 1) {
+    const dakika = Math.round(saat * 60)
+    return `${dakika} dakika`
+  }
+  if (saat === 1) return '1 saat'
+  return `${saat.toLocaleString('tr-TR', { maximumFractionDigits: 1 })} saat`
 }
 
 /**
@@ -197,6 +248,179 @@ function YaptirimKaydi({ sanction }: { sanction: UserSanction }) {
         ) : null}
       </p>
     </li>
+  )
+}
+
+/** Risk skoru görsel metre bileşeni. */
+function RiskMetre({
+  score,
+}: {
+  score: NonNullable<SellerPanelProps['riskScore']>
+}) {
+  return (
+    <div className={css.riskScoreGroup}>
+      <span className={css.riskScoreLabel}>
+        Risk Skoru: {score.value} ({RISK_SEVIYE_ETIKETI[score.level]})
+      </span>
+      <div
+        className={css.riskMeterTrack}
+        role="meter"
+        aria-valuenow={score.value}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Risk Skoru"
+      >
+        <div
+          className={css.riskMeterFill({ level: score.level })}
+          style={{ width: `${Math.min(Math.max(score.value, 0), 100)}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Tek bir dolandırıcılık göstergesi: ikon + etiket + değer + ciddiyet rozeti.
+ */
+function DolandiricilikGostergesi({
+  icon,
+  label,
+  value,
+  severity,
+}: {
+  icon: ReactNode
+  label: string
+  value: string
+  severity: FraudSeverity
+}) {
+  return (
+    <li className={css.fraudItem}>
+      <span className={css.fraudItemIcon} aria-hidden="true">
+        {icon}
+      </span>
+      <span className={css.fraudItemText}>
+        {label}: {value}
+      </span>
+      <Badge tone={FRAUD_SEVERITY_TONE[severity]} variant="soft" size="sm">
+        {FRAUD_SEVERITY_LABEL[severity]}
+      </Badge>
+    </li>
+  )
+}
+
+/**
+ * Dolandırıcılık sinyalleri bölümü: verilmiş göstergeleri eşik değerleriyle
+ * ciddiyet seviyesine çevirir ve listeler.
+ */
+function DolandiricilikSinyalleri({
+  indicators,
+  labelId,
+}: {
+  indicators: NonNullable<SellerPanelProps['fraudIndicators']>
+  labelId: string
+}) {
+  const items: { icon: ReactNode; label: string; value: string; severity: FraudSeverity }[] = []
+
+  if (indicators.listingDeletionRate !== undefined) {
+    const rate = indicators.listingDeletionRate
+    const severity: FraudSeverity = rate > 30 ? 'danger' : rate > 15 ? 'warning' : 'normal'
+    items.push({
+      icon: <Trash2 size={16} />,
+      label: 'İlan Silme Oranı',
+      value: `%${rate.toLocaleString('tr-TR')}`,
+      severity,
+    })
+  }
+
+  if (indicators.priceAnomalyCount !== undefined) {
+    const count = indicators.priceAnomalyCount
+    const severity: FraudSeverity = count > 3 ? 'danger' : count > 1 ? 'warning' : 'normal'
+    items.push({
+      icon: <TrendingDown size={16} />,
+      label: 'Fiyat Anomalisi',
+      value: count.toLocaleString('tr-TR'),
+      severity,
+    })
+  }
+
+  if (indicators.duplicateImageCount !== undefined) {
+    const count = indicators.duplicateImageCount
+    const severity: FraudSeverity = count > 0 ? 'warning' : 'normal'
+    items.push({
+      icon: <Copy size={16} />,
+      label: 'Yinelenen Görsel',
+      value: count.toLocaleString('tr-TR'),
+      severity,
+    })
+  }
+
+  if (indicators.rapidRelisting !== undefined) {
+    const severity: FraudSeverity = indicators.rapidRelisting ? 'warning' : 'normal'
+    items.push({
+      icon: <RefreshCw size={16} />,
+      label: 'Hızlı Yeniden Listeleme',
+      value: indicators.rapidRelisting ? 'Evet' : 'Hayır',
+      severity,
+    })
+  }
+
+  if (indicators.contactChangeFrequency !== undefined) {
+    const freq = indicators.contactChangeFrequency
+    const severity: FraudSeverity = freq > 3 ? 'danger' : freq > 1 ? 'warning' : 'normal'
+    items.push({
+      icon: <Phone size={16} />,
+      label: 'İletişim Değişikliği',
+      value: `${freq.toLocaleString('tr-TR')} kez`,
+      severity,
+    })
+  }
+
+  if (items.length === 0) return null
+
+  return (
+    <div className={css.fraudGroup}>
+      <span className={css.fraudLabel} id={labelId}>
+        Dolandırıcılık Sinyalleri
+      </span>
+      <ul className={css.fraudList} aria-labelledby={labelId}>
+        {items.map((item) => (
+          <DolandiricilikGostergesi key={item.label} {...item} />
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/**
+ * Etkileşim metrikleri bölümü.
+ */
+function EtkilesimMetrikleri({
+  metrics,
+}: {
+  metrics: NonNullable<SellerPanelProps['engagementMetrics']>
+}) {
+  const hasAny =
+    metrics.avgResponseTime !== undefined ||
+    metrics.inquiryCount !== undefined ||
+    metrics.responseRate !== undefined
+
+  if (!hasAny) return null
+
+  return (
+    <div className={css.engagementGroup}>
+      <span className={css.engagementLabel}>Etkileşim Metrikleri</span>
+      <dl className={css.facts}>
+        {metrics.avgResponseTime !== undefined ? (
+          <Bilgi label="Ort. Yanıt Süresi">{yanitSuresiMetni(metrics.avgResponseTime)}</Bilgi>
+        ) : null}
+        {metrics.inquiryCount !== undefined ? (
+          <Bilgi label="Soru Sayısı">{metrics.inquiryCount.toLocaleString('tr-TR')}</Bilgi>
+        ) : null}
+        {metrics.responseRate !== undefined ? (
+          <Bilgi label="Mesaj Yanıt Oranı">{`%${metrics.responseRate.toLocaleString('tr-TR')}`}</Bilgi>
+        ) : null}
+      </dl>
+    </div>
   )
 }
 
@@ -302,6 +526,9 @@ export function SellerPanel({
   sanctions,
   variant = 'summary',
   actions,
+  riskScore,
+  fraudIndicators,
+  engagementMetrics,
 }: SellerPanelProps) {
   const yaptirim = DURUM_YAPTIRIMI[user.status]
   const kurumsal = KURUMSAL_TIPLER.includes(user.type)
@@ -313,6 +540,7 @@ export function SellerPanel({
     okuyucu yanlış etikete bakardı (AGENTS.md, SidebarNav'ın ölçtüğü tuzak).
   */
   const sicilBaslikId = useId()
+  const dolandiricilikBaslikId = useId()
 
   return (
     <section className={css.root({ variant })} aria-label="İlan sahibi">
@@ -485,7 +713,20 @@ export function SellerPanel({
               )}
             </div>
           ) : null}
+
+          {riskScore !== undefined ? <RiskMetre score={riskScore} /> : null}
+
+          {fraudIndicators !== undefined ? (
+            <DolandiricilikSinyalleri
+              indicators={fraudIndicators}
+              labelId={dolandiricilikBaslikId}
+            />
+          ) : null}
         </>
+      ) : null}
+
+      {(variant === 'detailed' || variant === 'risk') && engagementMetrics !== undefined ? (
+        <EtkilesimMetrikleri metrics={engagementMetrics} />
       ) : null}
     </section>
   )

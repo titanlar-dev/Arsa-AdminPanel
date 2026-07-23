@@ -1,14 +1,17 @@
 import {
+  useCallback,
   useId,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent,
   type ReactNode,
 } from 'react'
-import { ChevronRight, EyeOff } from 'lucide-react'
+import { ChevronDown, ChevronRight, EyeOff } from 'lucide-react'
 import { Badge } from '../../primitives/Badge'
 import { Skeleton } from '../../primitives/Skeleton'
+import { SearchInput } from '../../primitives/SearchInput'
 import { EmptyState } from '../EmptyState'
 import type { CategoryTreeNode, CategoryTreeProps } from '../../../types/component-props'
 import * as css from './CategoryTree.css'
@@ -60,6 +63,114 @@ const derinlikStili = (seviye: number): DerinlikStili => ({
   [css.DERINLIK_VAR]: String(seviye - 1),
 })
 
+/* ── Arama yardımcıları ──────────────────────────────────────────────────── */
+
+/**
+ * Ağacı arama terimine göre süzer; hiyerarşiyi korur.
+ *
+ * Bir düğüm sonuca dahil edilir:
+ * - kendi etiketi eşleşiyorsa, **veya**
+ * - herhangi bir torunu eşleşiyorsa (ata olarak korunur).
+ *
+ * Dönen ağaçta yalnız eşleşen dallar kalır; eşleşme yoksa boş dizi döner.
+ */
+function filterTree(
+  nodes: CategoryTreeNode[],
+  term: string,
+): CategoryTreeNode[] {
+  const lower = term.toLocaleLowerCase('tr-TR')
+
+  return nodes.reduce<CategoryTreeNode[]>((sonuc, node) => {
+    const etiketEslesiyor = node.label.toLocaleLowerCase('tr-TR').includes(lower)
+    const suzulmusCocuklar = filterTree(node.children ?? [], term)
+
+    if (etiketEslesiyor || suzulmusCocuklar.length > 0) {
+      const cocuklar = suzulmusCocuklar.length > 0 ? suzulmusCocuklar : (node.children ?? [])
+      sonuc.push({
+        ...node,
+        children: cocuklar,
+      })
+    }
+
+    return sonuc
+  }, [])
+}
+
+/** Ağaçtaki tüm düğüm id'lerini toplar (tümünü aç için). */
+function tumIdler(nodes: CategoryTreeNode[]): string[] {
+  return nodes.flatMap((node) => {
+    const cocuklar = node.children ?? []
+    return cocuklar.length > 0
+      ? [node.id, ...tumIdler(cocuklar)]
+      : []
+  })
+}
+
+/**
+ * Süzülmüş ağaçta eşleşen (yaprak seviyesinde veya doğrudan eşleşen) düğüm
+ * sayısını hesaplar.
+ */
+function eslesenSay(nodes: CategoryTreeNode[], term: string): number {
+  const lower = term.toLocaleLowerCase('tr-TR')
+  let toplam = 0
+
+  for (const node of nodes) {
+    if (node.label.toLocaleLowerCase('tr-TR').includes(lower)) {
+      toplam++
+    }
+    toplam += eslesenSay(node.children ?? [], term)
+  }
+
+  return toplam
+}
+
+/** Süzülmüş ağaçtaki dal (çocuklu) düğümlerin id'lerini toplar. */
+function dalIdleri(nodes: CategoryTreeNode[]): string[] {
+  return nodes.flatMap((node) => {
+    const cocuklar = node.children ?? []
+    return cocuklar.length > 0
+      ? [node.id, ...dalIdleri(cocuklar)]
+      : []
+  })
+}
+
+/**
+ * Etiket metninde arama terimini `<mark>` ile vurgular.
+ *
+ * Eşleşme yoksa düz metin döner. Birden fazla eşleşme varsa hepsi vurgulanır.
+ * Büyük/küçük harf Türkçe locale ile karşılaştırılır ama orijinal metin korunur.
+ */
+function vurgulayarak(etiket: string, term: string): ReactNode {
+  if (term === '') return etiket
+
+  const lower = etiket.toLocaleLowerCase('tr-TR')
+  const termLower = term.toLocaleLowerCase('tr-TR')
+  const parcalar: ReactNode[] = []
+  let kalan = 0
+
+  while (kalan < etiket.length) {
+    const idx = lower.indexOf(termLower, kalan)
+    if (idx === -1) {
+      parcalar.push(etiket.slice(kalan))
+      break
+    }
+
+    if (idx > kalan) {
+      parcalar.push(etiket.slice(kalan, idx))
+    }
+
+    parcalar.push(
+      <mark key={idx} className={css.highlight}>
+        {etiket.slice(idx, idx + term.length)}
+      </mark>,
+    )
+
+    kalan = idx + term.length
+  }
+
+  return parcalar
+}
+
 /**
  * Kategori hiyerarşisi: kategori ve öznitelik yönetiminin gezinme ağacı.
  *
@@ -110,20 +221,69 @@ export function CategoryTree({
   loading = false,
   onSelect,
   onExpandedIdsChange,
+  searchable = false,
+  showExpandControls = false,
 }: CategoryTreeProps) {
   const idOneki = useId()
   /** Klavye odağı DOM'a ancak elemanın kendisinden verilebilir. */
   const dugumRefleri = useRef(new Map<string, HTMLLIElement>())
   const [odaklanan, setOdaklanan] = useState<string | null>(null)
 
+  /* ── Arama durumu ──────────────────────────────────────────────────────── */
+  const [aramaTerimi, setAramaTerimi] = useState('')
+  /**
+   * Arama başlamadan önceki açık düğüm listesi. Arama temizlenince bu listeye
+   * geri dönülür; arama sırasında ağaç otomatik açıldığı için kullanıcının
+   * önceki durumu kaybolmamalı.
+   */
+  const aramaOncesiAcikRef = useRef<string[] | null>(null)
+
+  const aramaAktif = aramaTerimi !== ''
+
+  const handleSearch = useCallback(
+    (value: string) => {
+      if (value !== '' && aramaOncesiAcikRef.current === null) {
+        aramaOncesiAcikRef.current = expandedIds
+      }
+
+      setAramaTerimi(value)
+
+      if (value === '') {
+        /* Arama temizlendi: önceki duruma dön. */
+        if (aramaOncesiAcikRef.current !== null) {
+          onExpandedIdsChange(aramaOncesiAcikRef.current)
+          aramaOncesiAcikRef.current = null
+        }
+      }
+    },
+    [expandedIds, onExpandedIdsChange],
+  )
+
+  const handleSearchClear = useCallback(() => {
+    handleSearch('')
+  }, [handleSearch])
+
+  /* Süzülmüş ağaç ve otomatik açılacak dallar. */
+  const suzulmusAgac = useMemo(() => {
+    if (!aramaAktif) return nodes
+    return filterTree(nodes, aramaTerimi)
+  }, [nodes, aramaTerimi, aramaAktif])
+
+  const eslesenSayisi = useMemo(() => {
+    if (!aramaAktif) return 0
+    return eslesenSay(nodes, aramaTerimi)
+  }, [nodes, aramaTerimi, aramaAktif])
+
+  /* Arama sırasında eşleşen dalları otomatik aç. */
+  const aramaExpandIds = useMemo(() => {
+    if (!aramaAktif) return expandedIds
+    return dalIdleri(suzulmusAgac)
+  }, [aramaAktif, suzulmusAgac, expandedIds])
+
+  const aktifExpandedIds = aramaAktif ? aramaExpandIds : expandedIds
+
   if (loading) {
     return (
-      /*
-        `aria-busy`: Skeleton'ın tamamı `aria-hidden`, dolayısıyla yükleme sırasında
-        bu kutu ekran okuyucu için bomboş. Meşguliyeti duyurmak Skeleton'ın kendi
-        sözleşmesinde kapsayan bölüme bırakılmış. `role="tree"` bilerek yok: boş
-        bir ağaç duyurmak, hiç ağaç duyurmamaktan kötü.
-      */
       <div className={css.root({ variant })} aria-busy="true">
         {/* Altı satır: brifing 1.1'in kök kategori sayısı. Veri gelince düzen zıplamaz. */}
         <Skeleton lines={6} />
@@ -141,16 +301,19 @@ export function CategoryTree({
     )
   }
 
-  const duzListe = gorunurDugumler(nodes, expandedIds)
+  /* ── Tümünü aç / kapat ─────────────────────────────────────────────── */
+  const tumunuAc = () => {
+    onExpandedIdsChange(tumIdler(nodes))
+  }
+
+  const tumunuKapat = () => {
+    onExpandedIdsChange([])
+  }
+
+  const gosterilecekAgac = suzulmusAgac
+  const duzListe = gorunurDugumler(gosterilecekAgac, aktifExpandedIds)
   const gorunurMu = (id: string) => duzListe.some((duz) => duz.node.id === id)
 
-  /*
-    Tek Tab durağı: ağacın **tam olarak bir** düğümü `tabIndex={0}` taşır.
-    Sırayla: kullanıcının en son odakladığı düğüm, yoksa seçili düğüm, yoksa ilk
-    kök. Her üçü de "görünür mü" diye sınanıyor — kapalı bir dalın içinde kalan
-    kimlik `tabIndex={0}`'ı hiç render edilmeyen bir satıra verir ve ağaç klavyeye
-    kapanırdı.
-  */
   const odakId =
     odaklanan !== null && gorunurMu(odaklanan)
       ? odaklanan
@@ -164,12 +327,11 @@ export function CategoryTree({
   }
 
   const ac = (id: string) => {
-    /* Zaten açık düğümü tekrar eklemek listeyi çoğaltır; sözleşme id **listesi** istiyor. */
-    if (!expandedIds.includes(id)) onExpandedIdsChange([...expandedIds, id])
+    if (!aktifExpandedIds.includes(id)) onExpandedIdsChange([...aktifExpandedIds, id])
   }
 
   const kapat = (id: string) => {
-    onExpandedIdsChange(expandedIds.filter((acikId) => acikId !== id))
+    onExpandedIdsChange(aktifExpandedIds.filter((acikId) => acikId !== id))
   }
 
   /** Satırın birincil eylemi: seç, dallıysa aç. Bkz. component JSDoc'u. */
@@ -178,11 +340,6 @@ export function CategoryTree({
     if ((node.children ?? []).length > 0) ac(node.id)
   }
 
-  /*
-    Tuşlar ağacın kökünde dinleniyor, satır satır değil: odaklanabilen tek şey
-    `tabIndex={0}` taşıyan düğüm, dolayısıyla olay her zaman ondan kabarıyor ve
-    "hangi satırdayım" sorusunun cevabı zaten `odakId`.
-  */
   const tusaBasildi = (event: KeyboardEvent<HTMLUListElement>) => {
     if (odakId === null) return
 
@@ -192,7 +349,7 @@ export function CategoryTree({
 
     const cocuklar = gecerli.node.children ?? []
     const acilabilir = cocuklar.length > 0
-    const acik = acilabilir && expandedIds.includes(gecerli.node.id)
+    const acik = acilabilir && aktifExpandedIds.includes(gecerli.node.id)
 
     switch (event.key) {
       case 'ArrowDown': {
@@ -207,7 +364,6 @@ export function CategoryTree({
         break
       }
 
-      /* Kapalıysa aç, açıksa ilk çocuğa in — WAI-ARIA ağaç kalıbı. */
       case 'ArrowRight': {
         if (!acilabilir) return
         if (acik) {
@@ -219,7 +375,6 @@ export function CategoryTree({
         break
       }
 
-      /* Açıksa kapat, değilse ataya çık. Kökteki yaprakta yapacak bir şey yok. */
       case 'ArrowLeft': {
         if (acik) {
           kapat(gecerli.node.id)
@@ -243,7 +398,6 @@ export function CategoryTree({
         break
       }
 
-      /* Tıklamayla aynı eylem: iki giriş yolu aynı sonucu vermeli. */
       case 'Enter':
       case ' ': {
         satirSecildi(gecerli.node)
@@ -254,11 +408,6 @@ export function CategoryTree({
         return
     }
 
-    /*
-      Yalnız gerçekten karşıladığımız tuşlarda: oklar sayfayı kaydırmamalı,
-      boşluk sayfayı atlatmamalı. Karşılamadığımız her tuş yukarıdaki
-      `return`'lerle tarayıcıya bırakılıyor.
-    */
     event.preventDefault()
   }
 
@@ -266,7 +415,7 @@ export function CategoryTree({
     liste.map((node) => {
       const cocuklar = node.children ?? []
       const acilabilir = cocuklar.length > 0
-      const acik = acilabilir && expandedIds.includes(node.id)
+      const acik = acilabilir && aktifExpandedIds.includes(node.id)
       const secili = node.id === selectedId
       const satirId = `${idOneki}-${node.id}`
 
@@ -275,14 +424,8 @@ export function CategoryTree({
           key={node.id}
           role="treeitem"
           aria-level={seviye}
-          /* Ad satırdan gelir; alt ağaç ada karışmaz (bkz. component JSDoc'u). */
           aria-labelledby={satirId}
           {...(acilabilir && { 'aria-expanded': acik })}
-          /*
-            Yalnız seçili düğümde. Tek seçimli ağaçta her satıra
-            `aria-selected="false"` yazmak ekran okuyucuya gezilen her satırda
-            "seçili değil" dedirtir; ARIA bunu tam da bu yüzden istemiyor.
-          */
           {...(secili && { 'aria-selected': true })}
           tabIndex={node.id === odakId ? 0 : -1}
           className={css.item}
@@ -292,25 +435,10 @@ export function CategoryTree({
               dugumRefleri.current.delete(node.id)
             }
           }}
-          /*
-            Fare odağı da `odakId`'yi güncellemeli: tıklanan satırdan sonra aşağı
-            ok bir sonrakine gitmeli, en son klavyeyle gezilen yerden devam
-            etmemeli. `focusin` kabardığı için hedef sınanıyor — sınanmasaydı
-            çocuğa gelen odağı her atası kendine yazardı.
-          */
           onFocus={(event) => {
             if (event.target === event.currentTarget) setOdaklanan(node.id)
           }}
         >
-          {/*
-            Tıklama `<li>`'de değil satırda: `<li>`'de olsaydı çocuğun tıklaması
-            atalarına da kabarır ve en dıştaki ata en son seçilen olurdu —
-            "Daire"ye basan kullanıcı "Konut" seçili bulurdu. Satır kutusu alt
-            listeyi içermediği için kabarma orada bitiyor.
-
-            Statik eleman ama klavyesiz değil: bu satırın erişilebilir eşdeğeri
-            `<li role="treeitem">` ve Enter/Boşluk aynı eylemi çalıştırıyor.
-          */}
           <div
             id={satirId}
             className={css.row({ variant, selected: secili, passive: !node.active })}
@@ -321,12 +449,6 @@ export function CategoryTree({
               <span
                 className={css.toggle}
                 aria-hidden="true"
-                /*
-                  Ok yalnız kapatmanın kısayolu; ekran okuyucunun karşılığı
-                  `aria-expanded` ve sol/sağ ok tuşları. Ayrı bir `<button>`
-                  olsaydı ağacın içine ikinci bir Tab durağı girer, "tek durak"
-                  kuralı ve ağaç kalıbı bozulurdu.
-                */
                 onClick={(event) => {
                   event.stopPropagation()
                   if (acik) kapat(node.id)
@@ -339,7 +461,9 @@ export function CategoryTree({
               <span className={css.togglePlaceholder} aria-hidden="true" />
             )}
 
-            <span className={css.label}>{node.label}</span>
+            <span className={css.label}>
+              {aramaAktif ? vurgulayarak(node.label, aramaTerimi) : node.label}
+            </span>
 
             {node.active ? null : variant === 'panel' ? (
               <span className={css.badgeSlot}>
@@ -348,11 +472,6 @@ export function CategoryTree({
                 </Badge>
               </span>
             ) : (
-              /*
-                Dar varyantlarda rozet etikete yer bırakmıyor; solma ise tek
-                başına renk demek. İkon rengi olmayan ikinci bir gösterge, gizli
-                metin de düğümün adına "Pasif"i ekler.
-              */
               <>
                 <span className={css.passiveIcon} aria-hidden="true">
                   <EyeOff size={14} />
@@ -364,7 +483,6 @@ export function CategoryTree({
             {node.count !== undefined ? (
               <span className={css.count}>
                 {node.count.toLocaleString('tr-TR')}
-                {/* Çıplak "4.820" bir ad değil: neyin sayıldığı adda kalmalı. */}
                 <span className={css.visuallyHidden}> ilan</span>
               </span>
             ) : null}
@@ -379,11 +497,66 @@ export function CategoryTree({
       )
     })
 
+  const aramaVeKontrollerVar = searchable || showExpandControls
+
   return (
     <div className={css.root({ variant })}>
-      <ul role="tree" aria-label="Kategori ağacı" className={css.list} onKeyDown={tusaBasildi}>
-        {dallariCiz(nodes, 1)}
-      </ul>
+      {aramaVeKontrollerVar ? (
+        <div className={css.toolbar}>
+          {searchable ? (
+            <div className={css.searchContainer}>
+              <SearchInput
+                label="Kategori ara"
+                placeholder="Kategori ara..."
+                onSearch={handleSearch}
+                onClear={handleSearchClear}
+                debounceMs={300}
+                size="sm"
+              />
+              {aramaAktif ? (
+                <span className={css.matchCount} aria-live="polite">
+                  {eslesenSayisi > 0
+                    ? `${eslesenSayisi} sonuç bulundu`
+                    : null}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+
+          {showExpandControls && !aramaAktif ? (
+            <div className={css.expandControls}>
+              <button
+                type="button"
+                className={css.expandButton}
+                onClick={tumunuAc}
+              >
+                <ChevronDown size={14} />
+                Tümünü aç
+              </button>
+              <button
+                type="button"
+                className={css.expandButton}
+                onClick={tumunuKapat}
+              >
+                <ChevronRight size={14} />
+                Tümünü kapat
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {aramaAktif && suzulmusAgac.length === 0 ? (
+        <EmptyState
+          variant="compact"
+          title="Sonuç bulunamadı"
+          description="Aramanızla eşleşen kategori bulunamadı"
+        />
+      ) : (
+        <ul role="tree" aria-label="Kategori ağacı" className={css.list} onKeyDown={tusaBasildi}>
+          {dallariCiz(gosterilecekAgac, 1)}
+        </ul>
+      )}
     </div>
   )
 }

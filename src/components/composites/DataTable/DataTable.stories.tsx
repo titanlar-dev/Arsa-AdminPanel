@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fireEvent, fn, userEvent, within } from 'storybook/test'
-import type { ColumnDef } from '../../../types/component-props'
+import type { ColumnDef, SelectOption } from '../../../types/component-props'
 import type { Listing } from '../../../types/domain'
 import { LISTING_CATEGORY_LABEL, TRANSACTION_TYPE_LABEL } from '../../../domain/labels'
 import { formatCurrency } from '../../../utils/formatCurrency'
@@ -9,6 +9,7 @@ import { allListingFixtures } from '../../../fixtures'
 import { ListingCard } from '../ListingCard'
 import { StatusBadge } from '../StatusBadge'
 import { DataTable } from './DataTable'
+import { generateCSV, downloadCSV } from './tableExport'
 
 /**
  * Generic'in gerçek kanıtı: `cell` içinde `row` tipi `Listing`'dir, `unknown` değil.
@@ -544,4 +545,541 @@ export const AdvancedAllFeatures: Story = {
       </div>
     ),
   ],
+}
+
+/* ── Sayfa-otesi secim ve disa aktarma story'leri ── */
+
+/**
+ * Sayfa-otesi toplu secim: `totalRowCount` verilince baslik kutusuna basildiktan
+ * sonra "Tum X kaydi sec" banner'i cikar. `selectAllMode` ile banner metni degisir.
+ *
+ * Sayfa basina 20 satir gosterilir; toplamda 5000 kayit oldugu varsayilir.
+ */
+export const BulkSelectAcrossPages: Story = {
+  render: function Render(args) {
+    const sayfaRows = allListingFixtures.slice(0, 5)
+    const [secili, setSecili] = useState<string[]>([])
+    const [selectAllMode, setSelectAllMode] = useState<'page' | 'all'>('page')
+
+    return (
+      <div style={{ display: 'grid', gap: '0.75rem' }}>
+        <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+          {selectAllMode === 'all' ? 'Tum 5.000 kayit secili' : `${secili.length} kayit secili`}
+          {' · '}mod: {selectAllMode}
+        </span>
+        <DataTable<Listing>
+          {...args}
+          rows={sayfaRows}
+          columns={SUTUNLAR}
+          selectable
+          selectedIds={secili}
+          onSelectionChange={(ids) => {
+            setSecili(ids)
+            // Sayfadaki tum satirlar secilmediyse modu page'e dondur
+            if (ids.length < sayfaRows.length) {
+              setSelectAllMode('page')
+            }
+          }}
+          totalRowCount={5000}
+          selectAllMode={selectAllMode}
+          onSelectAllAcrossPages={() => setSelectAllMode('all')}
+          onClearSelection={() => {
+            setSecili([])
+            setSelectAllMode('page')
+          }}
+          visualStyle="bordered"
+          rowLabel={(row) => `${row.title} ilanini sec`}
+        />
+      </div>
+    )
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement)
+
+    await step('Baslik kutusuna basinca tum sayfa secilir', async () => {
+      const tumunuSec = canvas.getByRole('checkbox', { name: /Tumunu sec/ })
+      await userEvent.click(tumunuSec)
+    })
+
+    await step('Banner gorunur: "Bu sayfadaki N kayit secildi"', async () => {
+      await expect(canvas.getByRole('status')).toHaveTextContent(/Bu sayfadaki/)
+    })
+
+    await step('"Tum 5.000 kaydi sec" butonuna basinca banner degisir', async () => {
+      await userEvent.click(canvas.getByRole('button', { name: /Tum.*kaydi sec/ }))
+      await expect(canvas.getByRole('status')).toHaveTextContent(/Tum 5\.000 kayit secildi/)
+    })
+
+    await step('"Secimi temizle" butonuna basinca banner kalkar', async () => {
+      await userEvent.click(canvas.getByRole('button', { name: /Secimi temizle/ }))
+      await expect(canvas.queryByRole('status')).not.toBeInTheDocument()
+    })
+  },
+}
+
+/**
+ * Disa aktarma butonu: `exportable` veya `toolbar.export` ile arac cubugunda
+ * "Disa aktar" menusu gorunur. CSV secenegi yerlesik `generateCSV` ile
+ * calisabilir; XLSX ise cagiran tarafindan uretilir.
+ */
+export const ExportableTable: Story = {
+  render: function Render(args) {
+    const handleExport = (format: 'csv' | 'xlsx', selectedOnly: boolean) => {
+      if (format === 'csv') {
+        const csv = generateCSV(allListingFixtures, SUTUNLAR)
+        downloadCSV(csv, 'ilanlar.csv')
+      } else {
+        // XLSX icin gercek uretim cagiran tarafindan yapilir
+        // eslint-disable-next-line no-console
+        console.log('XLSX export requested', { selectedOnly })
+      }
+    }
+
+    return (
+      <DataTable<Listing>
+        {...args}
+        rows={allListingFixtures}
+        columns={SUTUNLAR}
+        exportable
+        onExport={handleExport}
+        visualStyle="bordered"
+        toolbar={{ density: true, columns: true }}
+      />
+    )
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement)
+
+    await step('Disa aktar butonu gorunur', async () => {
+      await expect(canvas.getByRole('button', { name: /Disa aktar/ })).toBeVisible()
+    })
+
+    await step('Menuyu acinca CSV ve Excel secenekleri var', async () => {
+      await userEvent.click(canvas.getByRole('button', { name: /Disa aktar/ }))
+      const body = within(document.body)
+      await expect(await body.findByRole('menuitem', { name: /CSV olarak/ })).toBeVisible()
+      await expect(await body.findByRole('menuitem', { name: /Excel olarak/ })).toBeVisible()
+    })
+  },
+}
+
+/**
+ * Sayfa-otesi secim + disa aktarma bir arada. Satirlar secildiginde menude
+ * "Secilenleri CSV/Excel olarak disa aktar" secenekleri de gorunur.
+ */
+export const SelectAndExport: Story = {
+  render: function Render(args) {
+    const sayfaRows = allListingFixtures.slice(0, 5)
+    const [secili, setSecili] = useState<string[]>([])
+    const [selectAllMode, setSelectAllMode] = useState<'page' | 'all'>('page')
+
+    const handleExport = (format: 'csv' | 'xlsx', selectedOnly: boolean) => {
+      const rows = selectedOnly ? sayfaRows.filter((r) => secili.includes(r.id)) : sayfaRows
+      if (format === 'csv') {
+        const csv = generateCSV(rows, SUTUNLAR)
+        downloadCSV(csv, selectedOnly ? 'secili-ilanlar.csv' : 'ilanlar.csv')
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('XLSX export', { format, selectedOnly, count: rows.length })
+      }
+    }
+
+    return (
+      <div style={{ display: 'grid', gap: '0.75rem' }}>
+        <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+          {selectAllMode === 'all' ? 'Tum 5.000 kayit secili' : `${secili.length} kayit secili`}
+        </span>
+        <DataTable<Listing>
+          {...args}
+          rows={sayfaRows}
+          columns={SUTUNLAR}
+          selectable
+          selectedIds={secili}
+          onSelectionChange={(ids) => {
+            setSecili(ids)
+            if (ids.length < sayfaRows.length) setSelectAllMode('page')
+          }}
+          totalRowCount={5000}
+          selectAllMode={selectAllMode}
+          onSelectAllAcrossPages={() => setSelectAllMode('all')}
+          onClearSelection={() => {
+            setSecili([])
+            setSelectAllMode('page')
+          }}
+          exportable
+          onExport={handleExport}
+          visualStyle="bordered"
+          toolbar={{ density: true, columns: true }}
+          rowLabel={(row) => `${row.title} ilanini sec`}
+        />
+      </div>
+    )
+  },
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement)
+
+    await step('Bir satir secince menude "Secilenleri" secenekleri gorunur', async () => {
+      // Ilk satirin seçim kutusuna tıkla
+      const checkboxes = canvas.getAllByRole('checkbox')
+      // İlk checkbox "Tümünü seç", ikincisi ilk satır
+      await userEvent.click(checkboxes[1]!)
+
+      await userEvent.click(canvas.getByRole('button', { name: /Disa aktar/ }))
+      const body = within(document.body)
+      await expect(
+        await body.findByRole('menuitem', { name: /Secilenleri CSV/ }),
+      ).toBeVisible()
+      await expect(
+        await body.findByRole('menuitem', { name: /Secilenleri Excel/ }),
+      ).toBeVisible()
+    })
+  },
+}
+
+/* ── Sanallaştırma (virtualization) story'leri ── */
+
+/**
+ * Sahte ilan verisi ureticisi. 10.000+ satirlik tablolarda performans
+ * testleri icin kullanilir. Gercek `Listing` tipini tam olarak karsılamak
+ * yerine yalniz SUTUNLAR'in eristigi alanlari doldurur; generic constraint
+ * `{ id: string }` saglanir.
+ */
+const SEHIRLER = [
+  { city: 'Istanbul', districts: ['Kadikoy', 'Besiktas', 'Uskudar', 'Sisli', 'Bakirkoy', 'Fatih', 'Beyoglu', 'Sariyer'] },
+  { city: 'Ankara', districts: ['Cankaya', 'Kecioren', 'Yenimahalle', 'Mamak', 'Etimesgut'] },
+  { city: 'Izmir', districts: ['Karsiyaka', 'Bornova', 'Konak', 'Buca', 'Bayrakli'] },
+  { city: 'Antalya', districts: ['Muratpasa', 'Konyaalti', 'Kepez', 'Lara'] },
+  { city: 'Bursa', districts: ['Nilufer', 'Osmangazi', 'Yildirim'] },
+]
+
+const BASLIKLAR = [
+  'Deniz Manzarali Daire', 'Mustakil Villa', 'Bahceli Residence', 'Sehir Merkezinde Ofis',
+  'Genis Arsa', 'Cati Dubleksi', 'Loft Daire', 'Penthouse', 'Yali Dairesi',
+  'Sifir Bina Daire', 'Havuzlu Villa', 'Metroya Yakin Daire', 'Park Manzarali Residence',
+  'Orman Manzarali Ciftlik', 'Ticari Depo', 'Isyeri', 'Otopark Alti Dukkan',
+  'Plaja Yakin Yazlik', 'Kayak Merkezine Yakin', 'Universite Yaninda Studio',
+]
+
+const DURUMLAR = ['published', 'pendingReview', 'draft', 'rejected', 'paused', 'expired'] as const
+
+function generateMockListings(count: number): Listing[] {
+  const rows: Listing[] = []
+  for (let i = 0; i < count; i++) {
+    const sehir = SEHIRLER[i % SEHIRLER.length]!
+    const ilce = sehir.districts[i % sehir.districts.length]!
+    const baslik = BASLIKLAR[i % BASLIKLAR.length]!
+    const durum = DURUMLAR[i % DURUMLAR.length]!
+    const fiyat = 500_000 + (i * 73_291) % 9_500_000 // deterministik, cesitli fiyatlar
+
+    rows.push({
+      id: `mock-listing-${i}`,
+      listingNo: `IL-${String(i + 1).padStart(6, '0')}`,
+      title: `${baslik} #${i + 1}`,
+      description: '',
+      status: durum,
+      category: 'konut',
+      transactionType: 'satilik',
+      subCategory: 'daire',
+      price: { amount: fiyat, currency: 'TRY', period: 'toplu' },
+      location: {
+        cityCode: '34',
+        cityName: sehir.city,
+        districtId: `d-${ilce.toLowerCase()}`,
+        districtName: ilce,
+        neighborhoodId: `n-${ilce.toLowerCase()}-1`,
+        neighborhoodName: `${ilce} Merkez`,
+        latitude: 41.0 + (i % 100) * 0.001,
+        longitude: 29.0 + (i % 100) * 0.001,
+      },
+      photos: [],
+      listingDate: '2026-01-15T10:00:00+03:00',
+      createdAt: '2026-01-15T10:00:00+03:00',
+      updatedAt: '2026-01-15T10:00:00+03:00',
+      ownerUserId: `user-${i % 500}`,
+      seller: {
+        id: `seller-${i % 500}`,
+        type: 'sahibinden',
+        displayName: `Satici ${i % 500}`,
+        verificationStatus: 'verified',
+      },
+      contact: {
+        phone: '+905551234567',
+        allowPhone: true,
+        allowMessage: true,
+        preferredContactMethod: 'both',
+      },
+      promotionFlags: {
+        oneCikan: false,
+        acil: false,
+        vitrin: false,
+        anasayfaVitrini: false,
+        kategoriOneCikan: false,
+      },
+      promotions: [],
+      moderation: {
+        rejectionReasons: [],
+        automatedChecks: [],
+      },
+      metrics: {
+        viewCount: i * 3,
+        favoriteCount: i % 50,
+        messageCount: i % 20,
+        reportCount: i % 7,
+      },
+      source: 'web',
+      revision: 1,
+      tags: [],
+      attributes: {
+        grossArea: 80 + (i % 120),
+        netArea: 70 + (i % 100),
+        roomCount: '2+1',
+        buildingAge: 'age0to5',
+        floorNumber: (i % 15) + 1,
+        totalFloors: 15,
+        heatingType: 'merkezi',
+        bathroomCount: 1,
+        balcony: true,
+        elevator: true,
+        parking: 'kapaliOtopark',
+        furnished: false,
+        occupancyStatus: 'bos',
+        loanEligible: 'uygun',
+        titleDeedStatus: 'kat',
+        buildingCondition: 'iyi',
+        inSite: false,
+      },
+    } as unknown as Listing)
+  }
+  return rows
+}
+
+/**
+ * 10.000 satirlik sanallastirilmis tablo.
+ *
+ * `virtualize={true}` ile yalniz gorunur satirlar (+ overscan) render edilir.
+ * Kaydirma cubuguna dikkat: 10.000 satirin tamami icin orantili boyda. Sayfayi
+ * asagi kaydirir, satirlar anlık gelir — performans sorunu yok.
+ *
+ * `stickyHeader` ile baslik kaydirmada ustunde kalir.
+ */
+export const VirtualizedLargeDataset: Story = {
+  render: function Render() {
+    const mockRows = useMemo(() => generateMockListings(10_000), [])
+
+    return (
+      <DataTable<Listing>
+        rows={mockRows}
+        columns={SUTUNLAR}
+        virtualize={true}
+        stickyHeader={true}
+        visualStyle="bordered"
+        toolbar={{ density: true, columns: true }}
+      />
+    )
+  },
+}
+
+/**
+ * Sanallastirma performans hikayesi: yogunluk degistirildiginde satir
+ * yuksekligi uyum saglar, kaydirma pürüzsüz kalir. `estimateSize` yogunluga
+ * gore otomatik ayarlanir (compact: 36px, comfortable: 48px).
+ */
+export const VirtualizationPerformance: Story = {
+  render: function Render() {
+    const mockRows = useMemo(() => generateMockListings(10_000), [])
+    const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable')
+
+    return (
+      <div style={{ display: 'grid', gap: '0.75rem' }}>
+        <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+          {mockRows.length.toLocaleString('tr-TR')} satir, yogunluk: {density}
+          {' — asagi kaydir, pürüzsüz performansi gozlemle'}
+        </span>
+        <DataTable<Listing>
+          rows={mockRows}
+          columns={SUTUNLAR}
+          virtualize={{ overscan: 10 }}
+          stickyHeader={true}
+          visualStyle="striped"
+          density={density}
+          onDensityChange={setDensity}
+          toolbar={{ density: true }}
+        />
+      </div>
+    )
+  },
+}
+
+/* ── Gelismis baslik (sort icon + filter icon + popover) story'leri ── */
+
+/** Gelismis baslik sutun tanimlari: sort + filter ikonlari. */
+const KATEGORI_SECENEKLERI: SelectOption[] = [
+  { value: 'konut', label: 'Konut' },
+  { value: 'isyeri', label: 'Is Yeri' },
+  { value: 'arsa', label: 'Arsa' },
+]
+
+const DURUM_SECENEKLERI: SelectOption[] = [
+  { value: 'published', label: 'Yayinda' },
+  { value: 'pendingReview', label: 'Incelemede' },
+  { value: 'draft', label: 'Taslak' },
+  { value: 'rejected', label: 'Reddedildi' },
+]
+
+const GELISMIS_SUTUNLAR: ColumnDef<Listing>[] = [
+  {
+    id: 'listingNo',
+    header: 'Ilan no',
+    accessor: 'listingNo',
+    sortable: true,
+    filterable: true,
+    columnFilterable: true,
+    columnFilterType: 'text',
+    width: 'min(100%, 9rem)',
+  },
+  {
+    id: 'title',
+    header: 'Baslik',
+    cell: (row) => (
+      <span
+        style={{
+          display: 'block',
+          maxWidth: '22rem',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {row.title}
+      </span>
+    ),
+    sortable: true,
+    sortAccessor: (row) => row.title,
+    filterable: true,
+    filterAccessor: (row) => row.title,
+    columnFilterable: true,
+    columnFilterType: 'text',
+  },
+  {
+    id: 'category',
+    header: 'Kategori',
+    cell: (row) =>
+      `${LISTING_CATEGORY_LABEL[row.category]} · ${TRANSACTION_TYPE_LABEL[row.transactionType]}`,
+    hideable: true,
+    columnFilterable: true,
+    columnFilterType: 'select',
+    columnFilterOptions: KATEGORI_SECENEKLERI,
+  },
+  {
+    id: 'location',
+    header: 'Konum',
+    cell: (row) => `${row.location.districtName}, ${row.location.cityName}`,
+    hideable: true,
+    columnFilterable: true,
+    columnFilterType: 'text',
+  },
+  {
+    id: 'price',
+    header: 'Fiyat',
+    cell: (row) => formatCurrency(row.price),
+    sortable: true,
+    align: 'end',
+    sortAccessor: (row) => row.price.amount,
+    columnFilterable: true,
+    columnFilterType: 'number',
+  },
+  {
+    id: 'status',
+    header: 'Durum',
+    cell: (row) => <StatusBadge status={row.status} size="sm" showDot />,
+    columnFilterable: true,
+    columnFilterType: 'select',
+    columnFilterOptions: DURUM_SECENEKLERI,
+  },
+  {
+    id: 'reports',
+    header: 'Sikayet',
+    accessor: 'id',
+    cell: (row) => row.metrics.reportCount,
+    align: 'center',
+    sortable: true,
+    hideable: true,
+    sortAccessor: (row) => row.metrics.reportCount,
+  },
+]
+
+/**
+ * Gelismis basliklar: tum siralanabilir sutunlarda sort ikonu, tum
+ * filtrelenebilir sutunlarda huni ikonu gorulur. Huniye tiklaninca
+ * sutun tipine uygun filtre popover'i acilir.
+ */
+export const AdvancedHeaders: Story = {
+  render: (args) => (
+    <DataTable<Listing>
+      {...args}
+      rows={allListingFixtures}
+      columns={GELISMIS_SUTUNLAR}
+      visualStyle="bordered"
+    />
+  ),
+}
+
+/**
+ * Filtre popover'i acik gosterimi. "Kategori" sutunundaki huni
+ * tiklanarakacilir — select tipinde filtre popover'i gorulur.
+ */
+export const ColumnFilterPopover: Story = {
+  render: (args) => (
+    <DataTable<Listing>
+      {...args}
+      rows={allListingFixtures}
+      columns={GELISMIS_SUTUNLAR}
+      visualStyle="bordered"
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Kategori filtre butonuna tikla
+    const filtreButonu = canvas.getByRole('button', { name: /Kategori filtrele/ })
+    await userEvent.click(filtreButonu)
+    // Popover acildi
+    const body = within(document.body)
+    await expect(body.getByRole('dialog', { name: /Kategori filtresi/ })).toBeVisible()
+  },
+}
+
+/**
+ * Aktif filtreler: bazi sutunlarda filtre uygulanmis, huni ikonu
+ * vurgulanmis (primary renk + dolgulu ikon). Baslik filtreleri
+ * `columnHeaderFilters` prop'u ile kontrollü olarak verilebilir.
+ */
+export const ActiveFilters: Story = {
+  render: (args) => (
+    <DataTable<Listing>
+      {...args}
+      rows={allListingFixtures}
+      columns={GELISMIS_SUTUNLAR}
+      visualStyle="bordered"
+      columnHeaderFilters={{ category: 'konut', status: 'published' }}
+      onColumnHeaderFilterChange={fn()}
+    />
+  ),
+}
+
+/**
+ * Siralanmis sutun: Fiyat sutunu azalan sirada siralanmis, ok ikonu
+ * primary renkte ve asagi yonu gosteriyor. Siralanabilir sutunlarin
+ * hepsinde ChevronsUpDown (cift ok) ikonu gorunur.
+ */
+export const SortedColumn: Story = {
+  render: (args) => (
+    <DataTable<Listing>
+      {...args}
+      rows={allListingFixtures}
+      columns={GELISMIS_SUTUNLAR}
+      visualStyle="bordered"
+      sort={{ columnId: 'price', direction: 'desc' }}
+      onSortChange={fn()}
+    />
+  ),
 }

@@ -595,6 +595,8 @@ const SUTUNLAR: ColumnDef<Listing>[] = [
     id: 'listingNo',
     header: LISTING_FIELD_LABEL.listingNo,
     cell: (row) => <span className={css.identifier}>{row.listingNo}</span>,
+    columnFilterable: true,
+    columnFilterType: 'text',
   },
   {
     id: 'title',
@@ -610,11 +612,21 @@ const SUTUNLAR: ColumnDef<Listing>[] = [
         <span className={css.cellSecondary}>{LISTING_SUB_CATEGORY_LABEL[row.subCategory]}</span>
       </span>
     ),
+    columnFilterable: true,
+    columnFilterType: 'select',
+    columnFilterOptions: secenekler(Object.values(ListingCategory), LISTING_CATEGORY_LABEL),
   },
   {
     id: 'transactionType',
     header: LISTING_FIELD_LABEL.transactionType,
     cell: (row) => TRANSACTION_TYPE_LABEL[row.transactionType],
+    columnFilterable: true,
+    columnFilterType: 'select',
+    columnFilterOptions: [
+      { value: 'satilik', label: 'Satilik' },
+      { value: 'kiralik', label: 'Kiralik' },
+      { value: 'devren', label: 'Devren' },
+    ],
   },
   {
     id: 'location',
@@ -627,6 +639,8 @@ const SUTUNLAR: ColumnDef<Listing>[] = [
         <span className={css.cellSecondary}>{row.location.neighborhoodName}</span>
       </span>
     ),
+    columnFilterable: true,
+    columnFilterType: 'text',
   },
   {
     id: 'price',
@@ -638,6 +652,8 @@ const SUTUNLAR: ColumnDef<Listing>[] = [
       yapıştırmak sütunu okunmaz yapardı. Detay ekranının bilgisi.
     */
     cell: (row) => <span className={css.metric}>{formatCurrency(row.price)}</span>,
+    columnFilterable: true,
+    columnFilterType: 'number',
   },
   {
     id: 'seller',
@@ -658,6 +674,9 @@ const SUTUNLAR: ColumnDef<Listing>[] = [
     id: 'status',
     header: LISTING_FIELD_LABEL.status,
     cell: (row) => <StatusBadge status={row.status} size="sm" showDot />,
+    columnFilterable: true,
+    columnFilterType: 'select',
+    columnFilterOptions: secenekler(Object.values(ListingStatus), LISTING_STATUS_LABEL),
   },
   {
     id: 'listingDate',

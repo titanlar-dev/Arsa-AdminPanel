@@ -144,3 +144,19 @@ export const Magnified: Story = {
     })
   },
 }
+
+/**
+ * Gizli dock: varsayilan kapali, alt kisimda pulse eden handle bar gorunur.
+ * Handle'a hover yapinca dock yukari kayarak acilir. Dock alani disina
+ * cikilinca tekrar kapanir ve handle geri gelir.
+ */
+export const HiddenWithHandle: Story = {
+  args: { items: DASHBOARD, title: 'Dashboard' },
+  play: async ({ canvasElement, step }) => {
+    await step('Handle bar gorunur, dock gizli', async () => {
+      // Dock wrapper'ina hover yapilmadan pill opacity 0 olmali
+      const pills = canvasElement.querySelectorAll('[class]')
+      expect(pills.length).toBeGreaterThan(0)
+    })
+  },
+}

@@ -14,7 +14,9 @@ import type {
   FilterBarProps,
   FilterDefinition,
   FilterValue,
+  LocationValue,
   NumberRange,
+  PriceRangeValue,
 } from '../../../types/component-props'
 import * as css from './FilterBar.css'
 
@@ -41,7 +43,9 @@ const dizi = (deger: FilterValue): string[] => (Array.isArray(deger) ? deger : [
 /** Yalnız `true` filtre sayılır: kapalı bir anahtar hiçbir şeyi elemez. */
 const mantiksal = (deger: FilterValue): boolean => deger === true
 
-const nesneMi = (deger: FilterValue): deger is DateRange | NumberRange =>
+const nesneMi = (
+  deger: FilterValue,
+): deger is DateRange | NumberRange | LocationValue | PriceRangeValue =>
   typeof deger === 'object' && deger !== null && !Array.isArray(deger)
 
 /**
@@ -53,6 +57,52 @@ const tarihAraligi = (deger: FilterValue): DateRange =>
 
 const sayiAraligi = (deger: FilterValue): NumberRange =>
   nesneMi(deger) && ('min' in deger || 'max' in deger) ? deger : {}
+
+/** `location` filtresi icin `{ il?, ilce? }` daraltmasi. */
+const konumDegeri = (deger: FilterValue): LocationValue =>
+  nesneMi(deger) && ('il' in deger || 'ilce' in deger)
+    ? (deger as LocationValue)
+    : {}
+
+/** `priceRange` filtresi icin `{ min?, max? }` daraltmasi. */
+const fiyatAraligi = (deger: FilterValue): PriceRangeValue =>
+  nesneMi(deger) && ('min' in deger || 'max' in deger) ? (deger as PriceRangeValue) : {}
+
+/**
+ * Fiyat araligi preset eslesmesi kontrolu.
+ * Secili olan preset butonunun vurgulanmasi icin kullanilir.
+ */
+function presetEslesiyor(
+  deger: PriceRangeValue,
+  preset: { min?: number; max?: number },
+): boolean {
+  return deger.min === preset.min && deger.max === preset.max
+}
+
+/**
+ * `PriceRangeValue` araliginin tek ucunu gunceller.
+ * `exactOptionalPropertyTypes` ile uyumludur: `undefined` degerler silinir.
+ */
+function fiyatAralikGuncelle(
+  mevcut: PriceRangeValue,
+  uc: 'min' | 'max',
+  deger: number | undefined,
+): PriceRangeValue {
+  const sonraki: PriceRangeValue = { ...mevcut }
+  if (deger === undefined) delete sonraki[uc]
+  else sonraki[uc] = deger
+
+  // min > max ise diger ucu temizle
+  if (sonraki.min !== undefined && sonraki.max !== undefined && sonraki.min > sonraki.max) {
+    if (uc === 'min') delete sonraki.max
+    else delete sonraki.min
+  }
+
+  return sonraki
+}
+
+/** tr-TR formatinda fiyat gosterimi (orn. 1.500.000). */
+const fiyatBicimle = new Intl.NumberFormat('tr-TR').format
 
 /**
  * Aralığın tek ucunu günceller.
@@ -103,6 +153,16 @@ function doluMu(tanim: FilterDefinition, deger: FilterValue): boolean {
     case 'dateRange': {
       const aralik = tarihAraligi(deger)
       return aralik.from !== undefined || aralik.to !== undefined
+    }
+
+    case 'location': {
+      const konum = konumDegeri(deger)
+      return konum.il !== undefined && konum.il !== ''
+    }
+
+    case 'priceRange': {
+      const aralik = fiyatAraligi(deger)
+      return aralik.min !== undefined || aralik.max !== undefined
     }
   }
 }
@@ -243,6 +303,113 @@ export function FilterBar({
           />
         )
 
+      case 'location': {
+        const konum = konumDegeri(deger)
+        const ilceSecenekleri = konum.il !== undefined ? (tanim.ilceler[konum.il] ?? []) : []
+        return (
+          <fieldset className={css.rangeGroup} disabled={disabled}>
+            <legend className={css.rangeLegend}>{tanim.label}</legend>
+            <div className={css.locationInputs}>
+              <Select
+                label="Il"
+                value={konum.il === '' ? undefined : konum.il}
+                options={tanim.iller}
+                {...(tanim.ilPlaceholder !== undefined && { placeholder: tanim.ilPlaceholder })}
+                searchable={tanim.iller.length > ARAMA_ESIGI}
+                clearable
+                loading={loading}
+                disabled={disabled}
+                onValueChange={(next) => {
+                  // Il degistiginde ilceyi temizle
+                  const sonraki: LocationValue = {}
+                  if (next !== undefined && next !== '') {
+                    sonraki.il = next
+                  }
+                  onChange(tanim.id, sonraki)
+                }}
+              />
+              <Select
+                label="Ilce"
+                value={konum.ilce === '' ? undefined : konum.ilce}
+                options={ilceSecenekleri}
+                {...(tanim.ilcePlaceholder !== undefined && { placeholder: tanim.ilcePlaceholder })}
+                searchable={ilceSecenekleri.length > ARAMA_ESIGI}
+                clearable
+                loading={loading}
+                disabled={disabled || konum.il === undefined || konum.il === ''}
+                onValueChange={(next) => {
+                  const sonraki: LocationValue = { ...konum }
+                  if (next === undefined || next === '') {
+                    delete sonraki.ilce
+                  } else {
+                    sonraki.ilce = next
+                  }
+                  onChange(tanim.id, sonraki)
+                }}
+              />
+            </div>
+          </fieldset>
+        )
+      }
+
+      case 'priceRange': {
+        const aralik = fiyatAraligi(deger)
+        return (
+          <fieldset className={css.rangeGroup} disabled={disabled}>
+            <legend className={css.rangeLegend}>{tanim.label}</legend>
+            <div className={css.rangeInputs}>
+              <NumberInput
+                label="En az"
+                value={aralik.min}
+                min={0}
+                disabled={disabled}
+                onValueChange={(next) =>
+                  onChange(tanim.id, fiyatAralikGuncelle(aralik, 'min', next))
+                }
+              />
+              <NumberInput
+                label="En cok"
+                value={aralik.max}
+                min={0}
+                disabled={disabled}
+                onValueChange={(next) =>
+                  onChange(tanim.id, fiyatAralikGuncelle(aralik, 'max', next))
+                }
+              />
+            </div>
+            {aralik.min !== undefined || aralik.max !== undefined ? (
+              <div className={css.rangeLegend} style={{ marginBlockStart: '0.25rem' }}>
+                {aralik.min !== undefined && aralik.max !== undefined
+                  ? `${fiyatBicimle(aralik.min)} - ${fiyatBicimle(aralik.max)} TL`
+                  : aralik.min !== undefined
+                    ? `${fiyatBicimle(aralik.min)} TL ve uzeri`
+                    : `${fiyatBicimle(aralik.max!)} TL ve alti`}
+              </div>
+            ) : null}
+            {tanim.presets !== undefined && tanim.presets.length > 0 ? (
+              <div className={css.presetButtons}>
+                {tanim.presets.map((preset) => (
+                  <Button
+                    key={preset.label}
+                    variant={presetEslesiyor(aralik, preset) ? 'primary' : 'secondary'}
+                    size="sm"
+                    disabled={disabled}
+                    onClick={() => {
+                      const sonraki: PriceRangeValue = {}
+                      if (preset.min !== undefined) sonraki.min = preset.min
+                      if (preset.max !== undefined) sonraki.max = preset.max
+                      onChange(tanim.id, sonraki)
+                    }}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+          </fieldset>
+        )
+      }
+
       case 'boolean':
         return (
           <Switch
@@ -258,6 +425,8 @@ export function FilterBar({
   const alanSinifi = (tanim: FilterDefinition) => {
     if (tanim.type === 'boolean') return css.switchField
     if (tanim.type === 'numberRange' && variant === 'inline') return css.fieldWide
+    if (tanim.type === 'location' && variant === 'inline') return css.fieldWide
+    if (tanim.type === 'priceRange' && variant === 'inline') return css.fieldWide
     return css.field
   }
 

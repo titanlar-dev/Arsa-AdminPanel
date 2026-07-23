@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 import { Hash, Search } from 'lucide-react'
+import type { ValidationState } from '../../../types/component-props'
 import { Input } from './Input'
 
 const meta = {
@@ -163,13 +165,158 @@ export const Large: Story = {
 export const VariantsComparison: Story = {
   render: (args) => (
     <div style={{ display: 'grid', gap: '1.25rem' }}>
-      <Input {...args} size="sm" label="Küçük" />
+      <Input {...args} size="sm" label="Kucuk" />
       <Input {...args} size="md" label="Orta" />
-      <Input {...args} size="lg" label="Büyük" />
-      <Input {...args} label="İkonlu" leadingIcon={<Search size={16} />} />
+      <Input {...args} size="lg" label="Buyuk" />
+      <Input {...args} label="Ikonlu" leadingIcon={<Search size={16} />} />
       <Input {...args} label="Zorunlu" required helperText="Zorunlu alan" />
-      <Input {...args} label="Hatalı" error="Geçersiz değer" defaultValue="abc" />
-      <Input {...args} label="Devre dışı" disabled defaultValue="Düzenlenemez" />
+      <Input {...args} label="Hatali" error="Gecersiz deger" defaultValue="abc" />
+      <Input {...args} label="Devre disi" disabled defaultValue="Duzenlenemez" />
     </div>
   ),
+}
+
+/** Dort dogrulama durumu yan yana: error, warning, success, validating. */
+export const ValidationStates: Story = {
+  render: (args) => (
+    <div style={{ display: 'grid', gap: '1.25rem' }}>
+      <Input
+        {...args}
+        label="Hata (error)"
+        error="Ilan basligi en az 10 karakter olmalidir"
+        defaultValue="Daire"
+      />
+      <Input
+        {...args}
+        label="Uyari (warning)"
+        validationState="warning"
+        validationMessage="Baslik cok kisa olabilir, SEO icin en az 30 karakter onerilir"
+        defaultValue="3+1 daire satilik"
+      />
+      <Input
+        {...args}
+        label="Basari (success)"
+        validationState="success"
+        validationMessage="Ilan numarasi dogrulandi"
+        defaultValue="1245789630"
+      />
+      <Input
+        {...args}
+        label="Dogrulaniyor (validating)"
+        validationState="validating"
+        defaultValue="1245789630"
+      />
+    </div>
+  ),
+}
+
+/** Asenkron dogrulama simulasyonu: ilan no girilince sunucudan kontrol edilir. */
+export const AsyncValidation: Story = {
+  render: function Render(args) {
+    const [value, setValue] = useState('')
+    const [state, setState] = useState<ValidationState | undefined>(undefined)
+    const [message, setMessage] = useState<string | undefined>(undefined)
+
+    useEffect(() => {
+      if (value.length === 0) {
+        setState(undefined)
+        setMessage(undefined)
+        return
+      }
+      if (value.length < 10) {
+        setState('warning')
+        setMessage('Ilan numarasi 10 haneli olmalidir')
+        return
+      }
+
+      setState('validating')
+      setMessage(undefined)
+
+      const timer = setTimeout(() => {
+        if (value === '1234567890') {
+          setState('error')
+          setMessage('Bu ilan numarasi zaten kayitli')
+        } else {
+          setState('success')
+          setMessage('Ilan numarasi kullanilabilir')
+        }
+      }, 1500)
+
+      return () => clearTimeout(timer)
+    }, [value])
+
+    return (
+      <Input
+        {...args}
+        label="Ilan no"
+        placeholder="10 haneli ilan numarasini girin"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        {...(state !== undefined && { validationState: state })}
+        {...(message !== undefined && { validationMessage: message })}
+        helperText="Ornek: 1234567890 (kayitli) veya 9876543210 (bos)"
+      />
+    )
+  },
+}
+
+/** Basari durumu: ilan numarasi dogrulandi. */
+export const SuccessState: Story = {
+  args: {
+    label: 'Ilan no',
+    defaultValue: '9876543210',
+    validationState: 'success',
+    validationMessage: 'Ilan numarasi dogrulandi',
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Dogrulama mesajinin gorunur oldugunu dogrula
+    await expect(canvas.getByText('Ilan numarasi dogrulandi')).toBeInTheDocument()
+
+    // Kutunun data-validation-state attribute'unu dogrula
+    const input = canvas.getByRole('textbox')
+    const kutu = input.closest('[data-validation-state="success"]')
+    await expect(kutu).not.toBeNull()
+  },
+}
+
+/** `error` prop'u `validationState`'ten onceliklidir. */
+export const ErrorOverridesValidationState: Story = {
+  args: {
+    label: 'Ilan no',
+    defaultValue: 'abc',
+    error: 'Gecersiz ilan numarasi',
+    validationState: 'success',
+    validationMessage: 'Bu mesaj gorunmemeli',
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // error mesaji gorunmeli
+    await expect(canvas.getByText('Gecersiz ilan numarasi')).toBeInTheDocument()
+
+    // validationMessage gorunmemeli
+    const successMsg = canvas.queryByText('Bu mesaj gorunmemeli')
+    await expect(successMsg).toBeNull()
+  },
+}
+
+/** Karakter sayaci: maxLength ile sayac gosterilir. */
+export const WithCharacterCount: Story = {
+  args: {
+    label: 'Ilan basligi',
+    maxLength: 80,
+    defaultValue: 'Caferagada 3+1 Daire',
+    helperText: 'Baslik en fazla 80 karakter olabilir',
+  },
+}
+
+/** Karakter sayaci sinira yaklastiginda uyari rengi alir. */
+export const CharacterCountNearLimit: Story = {
+  args: {
+    label: 'Ilan basligi',
+    maxLength: 30,
+    defaultValue: 'Bu baslik 30 karaktere cok yak',
+  },
 }

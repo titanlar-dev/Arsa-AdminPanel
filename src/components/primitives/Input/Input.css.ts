@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css'
+import { keyframes, style } from '@vanilla-extract/css'
 import { recipe } from '@vanilla-extract/recipes'
 import { vars } from '@/tokens/contract.css'
 
@@ -25,6 +25,15 @@ export const control = recipe({
       /** Hata durumu yalnız renkle değil, kenarlık kalınlığıyla da belli olur. */
       '&[data-invalid]': {
         borderColor: vars.color.danger[600],
+      },
+      '&[data-validation-state="warning"]': {
+        borderColor: vars.color.warning[600],
+      },
+      '&[data-validation-state="success"]': {
+        borderColor: vars.color.success[600],
+      },
+      '&[data-validation-state="validating"]': {
+        borderColor: vars.color.info[600],
       },
       '&[data-disabled]': {
         background: vars.color.bg.disabled,
@@ -82,4 +91,43 @@ export const adornment = style({
   alignItems: 'center',
   flexShrink: 0,
   color: vars.color.text.muted,
+})
+
+/** Dogrulama durumu ikonu (trailing). */
+export const validationStateIcon = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  flexShrink: 0,
+})
+
+export const validationIconError = style({ color: vars.color.danger[600] })
+export const validationIconWarning = style({ color: vars.color.warning[600] })
+export const validationIconSuccess = style({ color: vars.color.success[600] })
+export const validationIconValidating = style({ color: vars.color.info[600] })
+
+const spin = keyframes({
+  from: { transform: 'rotate(0deg)' },
+  to: { transform: 'rotate(360deg)' },
+})
+
+/** Spinner animasyonu icin donme. */
+export const spinnerSpin = style({
+  animation: `${spin} 1s linear infinite`,
+})
+
+/** Karakter sayaci. */
+export const counter = style({
+  justifySelf: 'end',
+  fontSize: vars.font.size.sm,
+  color: vars.color.text.muted,
+  fontVariantNumeric: 'tabular-nums',
+})
+
+export const counterNearLimit = style({
+  color: vars.color.warning[800],
+})
+
+export const counterOverLimit = style({
+  color: vars.color.danger[800],
+  fontWeight: vars.font.weight.medium,
 })

@@ -18,7 +18,7 @@ import {
   Table2,
   Terminal,
 } from 'lucide-react'
-import type { DynamicIslandItem, DynamicIslandCommand } from '../../../types/component-props'
+import type { DynamicIslandItem, DynamicIslandCommand, DynamicIslandProps } from '../../../types/component-props'
 import { DynamicIsland } from './DynamicIsland'
 
 /** MetaPanel navigasyonu (kaynak `dynamic-island.tsx` `navItems`); renkler Tailwind-400 karşılıkları. */
@@ -198,5 +198,74 @@ export const Interactive: Story = {
       await userEvent.keyboard('{Escape}')
       await waitFor(() => expect(body.queryByRole('dialog')).toBeNull())
     })
+  },
+}
+
+// ---------------------------------------------------------------------------
+// Son ziyaret edilen sayfalar ve komutlar (Faz 4)
+// ---------------------------------------------------------------------------
+
+const RECENT_ITEMS: DynamicIslandProps['recentItems'] = [
+  { id: 'schema', label: 'Schema', href: '/schema', icon: Database, color: '#818cf8' },
+  { id: 'data', label: 'Data', href: '/data', icon: Table2, color: '#38bdf8' },
+  { id: 'dashboard', label: 'Dashboard', href: '/', icon: LayoutDashboard, color: '#60a5fa' },
+  { id: 'permissions', label: 'Permissions', href: '/permissions', icon: Shield, color: '#f87171' },
+  { id: 'reports', label: 'Reports', href: '/reports', icon: BarChart3, color: '#facc15' },
+]
+
+const RECENT_COMMANDS: DynamicIslandProps['recentCommands'] = [
+  { id: 'new-model', label: 'Yeni Model Olustur', hint: 'Schema Builder', icon: Database, href: '/schema' },
+  { id: 'run-query', label: 'Sorgu Calistir', hint: 'Data Explorer', icon: Terminal, href: '/data' },
+  { id: 'gen-types', label: 'Tip Uret', hint: 'Codegen', icon: FileCode, href: '/code' },
+]
+
+/** Son ziyaret edilen sayfalar gorunur. */
+export const WithRecentItems: Story = {
+  args: {
+    open: true,
+    recentItems: RECENT_ITEMS,
+  },
+}
+
+/** Son kullanilan komutlar gorunur. */
+export const WithRecentCommands: Story = {
+  args: {
+    open: true,
+    recentCommands: RECENT_COMMANDS,
+  },
+}
+
+/** Hem son sayfalar hem son komutlar. */
+export const CombinedHistory: Story = {
+  args: {
+    open: true,
+    recentItems: RECENT_ITEMS,
+    recentCommands: RECENT_COMMANDS,
+  },
+}
+
+/** Arama, gecmis oegeleri de filtreler. */
+export const SearchIncludesHistory: Story = {
+  args: {
+    open: true,
+    recentItems: RECENT_ITEMS,
+    recentCommands: RECENT_COMMANDS,
+  },
+  play: async () => {
+    const body = within(document.body)
+    const araBtn = await body.findByRole('button', { name: 'Ara' })
+    await userEvent.click(araBtn)
+    const input = await body.findByRole('textbox', { name: 'Ara' })
+    await userEvent.type(input, 'schema')
+    await waitFor(() => expect(body.getByRole('link', { name: 'Schema' })).toBeVisible())
+  },
+}
+
+/** Gecmis bos — bolumler gizli. */
+export const EmptyHistory: Story = {
+  args: {
+    open: true,
+    recentItems: [],
+    recentCommands: [],
   },
 }

@@ -115,12 +115,41 @@ export const Interactive: Story = {
 export const VariantsComparison: Story = {
   render: (args) => (
     <div style={{ display: 'grid', gap: '1.25rem' }}>
-      <NumberInput {...args} size="sm" label="Küçük" value={3} />
+      <NumberInput {...args} size="sm" label="Kucuk" value={3} />
       <NumberInput {...args} size="md" label="Orta" value={145} />
-      <NumberInput {...args} size="lg" label="Büyük" value={1250} />
-      <NumberInput {...args} label="Sınırda (max 10)" value={10} min={0} max={10} />
-      <NumberInput {...args} label="Hatalı" value={0} error="Pozitif olmalı" />
-      <NumberInput {...args} label="Devre dışı" value={145} disabled />
+      <NumberInput {...args} size="lg" label="Buyuk" value={1250} />
+      <NumberInput {...args} label="Sinirda (max 10)" value={10} min={0} max={10} />
+      <NumberInput {...args} label="Hatali" value={0} error="Pozitif olmali" />
+      <NumberInput {...args} label="Devre disi" value={145} disabled />
+    </div>
+  ),
+}
+
+/** Dort dogrulama durumu yan yana. */
+export const ValidationStates: Story = {
+  render: (args) => (
+    <div style={{ display: 'grid', gap: '1.25rem' }}>
+      <NumberInput {...args} label="Hata" value={0} error="Brut m2 pozitif olmalidir" />
+      <NumberInput
+        {...args}
+        label="Uyari"
+        value={15}
+        validationState="warning"
+        validationMessage="Brut m2 cok dusuk gorunuyor, kontrol edin"
+      />
+      <NumberInput
+        {...args}
+        label="Basari"
+        value={145}
+        validationState="success"
+        validationMessage="Brut m2 dogrulandi"
+      />
+      <NumberInput
+        {...args}
+        label="Dogrulaniyor"
+        value={200}
+        validationState="validating"
+      />
     </div>
   ),
 }

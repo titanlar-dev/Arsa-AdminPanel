@@ -400,3 +400,124 @@ globalStyle('[data-theme="warm-amber"]', {
     ...assignVars(vars.color.primary, amberScale),
   },
 })
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Karanlık mod: corporate-blue-dark
+ *
+ * Aydınlık temanın renk skalalarını korur, yalnız semantik takma adları
+ * tersine çevirir: zemin koyu, metin açık, kenarlıklar daha açık, gölgeler
+ * daha koyu. Durum renkleri koyu zeminde okunabilir kalacak şekilde
+ * ayarlanmıştır.
+ *
+ * Diğer temaların (neutral-slate, warm-amber) karanlık modları ileride
+ * eklenecektir; şimdilik yalnızca corporate-blue için tanımlıdır.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+globalStyle('[data-theme="corporate-blue-dark"]', {
+  vars: {
+    ...assignVars(vars.color.neutral, slateNeutral),
+    ...assignVars(vars.color.primary, blueScale),
+
+    /* ── Durum renkleri (üç palettede aynı) ── */
+    ...assignVars(vars.color.success, success),
+    ...assignVars(vars.color.warning, warning),
+    ...assignVars(vars.color.danger, danger),
+    ...assignVars(vars.color.info, info),
+
+    /* ── Zemin: koyu, yüzey bir ton açık ── */
+    [vars.color.bg.canvas]: slateNeutral[900],
+    [vars.color.bg.surface]: slateNeutral[800],
+    [vars.color.bg.subtle]: slateNeutral[700],
+    [vars.color.bg.elevated]: slateNeutral[800],
+    [vars.color.bg.disabled]: slateNeutral[700],
+    [vars.color.bg.overlay]: 'rgb(0 0 0 / 0.6)',
+
+    /* ── Metin: açık tonlar ── */
+    [vars.color.text.primary]: slateNeutral[50],
+    [vars.color.text.secondary]: slateNeutral[300],
+    [vars.color.text.muted]: slateNeutral[400],
+    [vars.color.text.disabled]: slateNeutral[500],
+    [vars.color.text.inverse]: slateNeutral[900],
+    [vars.color.text.link]: blueScale[400],
+    [vars.color.text.linkHover]: blueScale[300],
+
+    /* ── Kenarlıklar: koyu zeminde daha açık ── */
+    [vars.color.border.default]: slateNeutral[600],
+    [vars.color.border.strong]: slateNeutral[400],
+    [vars.color.border.subtle]: slateNeutral[700],
+
+    /* ── Eylem düğmeleri ── */
+    [vars.color.action.primary.bg]: blueScale[600],
+    [vars.color.action.primary.hover]: blueScale[500],
+    [vars.color.action.primary.active]: blueScale[400],
+    [vars.color.action.primary.text]: slateNeutral[0],
+
+    [vars.color.action.secondary.bg]: slateNeutral[800],
+    [vars.color.action.secondary.hover]: slateNeutral[700],
+    [vars.color.action.secondary.active]: slateNeutral[600],
+    [vars.color.action.secondary.text]: slateNeutral[50],
+    [vars.color.action.secondary.border]: slateNeutral[500],
+
+    [vars.color.action.ghost.hover]: slateNeutral[700],
+    [vars.color.action.ghost.active]: slateNeutral[600],
+    [vars.color.action.ghost.text]: slateNeutral[200],
+
+    [vars.color.action.danger.bg]: danger[700],
+    [vars.color.action.danger.hover]: danger[600],
+    [vars.color.action.danger.active]: danger[800],
+    [vars.color.action.danger.text]: slateNeutral[0],
+
+    /* ── Odak / seçim / tablo ── */
+    [vars.color.focus.ring]: blueScale[400],
+    [vars.color.selection.bg]: blueScale[900],
+    [vars.color.table.rowHover]: slateNeutral[700],
+
+    /* ── Durum rozetleri: koyu zeminde okunabilir kalacak şekilde ayarlandı ── */
+    [vars.color.status.draft.bg]: slateNeutral[700],
+    [vars.color.status.draft.text]: slateNeutral[200],
+    [vars.color.status.draft.border]: slateNeutral[500],
+    [vars.color.status.draft.solid]: slateNeutral[500],
+
+    [vars.color.status.pending.bg]: '#422006',
+    [vars.color.status.pending.text]: warning[100],
+    [vars.color.status.pending.border]: warning[600],
+    [vars.color.status.pending.solid]: warning[700],
+
+    [vars.color.status.changes.bg]: '#082f49',
+    [vars.color.status.changes.text]: info[100],
+    [vars.color.status.changes.border]: info[600],
+    [vars.color.status.changes.solid]: info[700],
+
+    [vars.color.status.published.bg]: '#052e16',
+    [vars.color.status.published.text]: success[100],
+    [vars.color.status.published.border]: success[600],
+    [vars.color.status.published.solid]: success[700],
+
+    [vars.color.status.rejected.bg]: '#450a0a',
+    [vars.color.status.rejected.text]: danger[100],
+    [vars.color.status.rejected.border]: danger[600],
+    [vars.color.status.rejected.solid]: danger[700],
+
+    [vars.color.status.paused.bg]: slateNeutral[600],
+    [vars.color.status.paused.text]: slateNeutral[200],
+    [vars.color.status.paused.border]: slateNeutral[400],
+    [vars.color.status.paused.solid]: slateNeutral[600],
+
+    [vars.color.status.expired.bg]: '#451a03',
+    [vars.color.status.expired.text]: warning[100],
+    [vars.color.status.expired.border]: warning[700],
+    [vars.color.status.expired.solid]: warning[800],
+
+    [vars.color.status.archived.bg]: slateNeutral[600],
+    [vars.color.status.archived.text]: slateNeutral[100],
+    [vars.color.status.archived.border]: slateNeutral[400],
+    [vars.color.status.archived.solid]: slateNeutral[700],
+
+    /* ── Gölgeler: koyu zeminde daha yoğun ── */
+    [vars.shadow.xs]: '0 1px 2px rgb(0 0 0 / 0.2)',
+    [vars.shadow.sm]: '0 1px 3px rgb(0 0 0 / 0.3), 0 1px 2px rgb(0 0 0 / 0.2)',
+    [vars.shadow.md]: '0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2)',
+    [vars.shadow.lg]: '0 10px 15px -3px rgb(0 0 0 / 0.35), 0 4px 6px -4px rgb(0 0 0 / 0.2)',
+    [vars.shadow.xl]: '0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.2)',
+  },
+})

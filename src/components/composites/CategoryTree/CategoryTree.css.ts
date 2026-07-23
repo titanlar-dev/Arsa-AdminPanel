@@ -263,3 +263,67 @@ export const visuallyHidden = style({
   whiteSpace: 'nowrap',
   borderWidth: 0,
 })
+
+/* ── Arama ve genişletme kontrolleri ─────────────────────────────────────── */
+
+/** Arama kutusu ve kontrol butonlarını saran üst bölge. */
+export const toolbar = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[2],
+  paddingBlockEnd: vars.space[3],
+})
+
+/** Arama kutusunun kabı. Mobilde tam genişlik. */
+export const searchContainer = style({
+  width: '100%',
+})
+
+/** Eşleşme sayacı: "N sonuç bulundu". */
+export const matchCount = style({
+  fontSize: vars.font.size.sm,
+  color: vars.color.text.muted,
+  paddingInlineStart: vars.space[1],
+})
+
+/** "Tümünü aç / Tümünü kapat" butonlarının satırı. */
+export const expandControls = style({
+  display: 'flex',
+  justifyContent: 'flex-end',
+  gap: vars.space[1],
+})
+
+/** Ghost buton: tümünü aç / tümünü kapat. */
+export const expandButton = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: vars.space[1],
+  padding: `${vars.space[1]} ${vars.space[2]}`,
+  border: 'none',
+  borderRadius: vars.radius.sm,
+  background: 'transparent',
+  color: vars.color.text.muted,
+  fontSize: vars.font.size.sm,
+  cursor: 'pointer',
+  lineHeight: 1,
+  whiteSpace: 'nowrap',
+
+  ':hover': {
+    background: vars.color.action.ghost.hover,
+    color: vars.color.text.primary,
+  },
+})
+
+/**
+ * Arama eşleşme vurgusu.
+ *
+ * `<mark>` varsayılan olarak sarı zemin taşır; burada warning.50 token'ı
+ * kullanılıyor — temanın uyarı yumuşak tonu. `color: inherit` metin rengini
+ * satırdan devralır, böylece pasif düğümün soluk rengi korunur.
+ */
+export const highlight = style({
+  background: vars.color.warning[50],
+  color: 'inherit',
+  borderRadius: vars.radius.sm,
+  padding: 0,
+})

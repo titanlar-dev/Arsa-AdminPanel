@@ -140,6 +140,9 @@ const meta = {
     user: { control: false },
     actions: { control: false },
     sanctions: { control: false },
+    riskScore: { control: false },
+    fraudIndicators: { control: false },
+    engagementMetrics: { control: false },
     listingCount: { control: { type: 'number', min: 0 } },
     activeListingCount: { control: { type: 'number', min: 0 } },
     openReportCount: { control: { type: 'number', min: 0 } },
@@ -521,13 +524,12 @@ export const CountsComeFromPropsNotFromAccount: Story = {
 }
 
 /**
- * `risk` bir hüküm yazmamalı: panel sayıları gösterir, "şüpheli/sahtekâr/riskli"
- * demez.
+ * `risk` bir hüküm yazmamalı: `riskScore` verilmezse panel puan hesaplamaz,
+ * "şüpheli/sahtekâr/riskli" demez.
  *
  * Tam da sınırdaki hesapla ölçülüyor: Marmara Emlak doğrulanmış ve aktif, ama üç
- * açık şikayeti var. Bir gün biri "Risk: Yüksek" rozeti veya bir puan eklemek
- * isterse bu test düşer ve kararın konuşulması gerektiğini hatırlatır — sayılar
- * moderatörün, hüküm panelin değil.
+ * açık şikayeti var. `riskScore` prop'u verilmediğinde panel kendi başına skor
+ * üretmez — sayıları gösterir, hükmü moderatöre bırakır.
  */
 export const RiskShowsSignalsNotAVerdict: Story = {
   args: { variant: 'risk', user: verifiedRealEstateOffice, listingCount: 6, openReportCount: 3 },
@@ -540,6 +542,7 @@ export const RiskShowsSignalsNotAVerdict: Story = {
     await expect(canvas.queryByText(/riskli/i)).not.toBeInTheDocument()
     await expect(canvas.queryByText(/şüpheli/i)).not.toBeInTheDocument()
     await expect(canvas.queryByText(/sahtekâr/i)).not.toBeInTheDocument()
+    /* riskScore prop'u verilmediğinde skor bölümü hiç render edilmez. */
     await expect(canvas.queryByText(/risk skoru/i)).not.toBeInTheDocument()
   },
 }
@@ -740,4 +743,194 @@ export const VariantsComparison: Story = {
       ))}
     </div>
   ),
+}
+
+/* ─── Risk skoru ve dolandırıcılık sinyalleri story'leri ────────────── */
+
+/**
+ * Dört risk seviyesi yan yana: low (yeşil), medium (amber), high (turuncu),
+ * critical (kırmızı). Metre ve etiket her birinde farklı.
+ */
+export const RiskScoring: Story = {
+  parameters: cokluKopyaLandmarkMuafiyeti,
+  render: (args) => (
+    <div style={{ display: 'grid', gap: '1rem' }}>
+      {(
+        [
+          { value: 12, level: 'low' },
+          { value: 38, level: 'medium' },
+          { value: 73, level: 'high' },
+          { value: 92, level: 'critical' },
+        ] as const
+      ).map((score) => (
+        <SellerPanel
+          {...args}
+          key={score.level}
+          variant="risk"
+          riskScore={score}
+        />
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    await expect(canvas.getByText(/Risk Skoru: 12 \(Düşük\)/)).toBeInTheDocument()
+    await expect(canvas.getByText(/Risk Skoru: 38 \(Orta\)/)).toBeInTheDocument()
+    await expect(canvas.getByText(/Risk Skoru: 73 \(Yüksek\)/)).toBeInTheDocument()
+    await expect(canvas.getByText(/Risk Skoru: 92 \(Kritik\)/)).toBeInTheDocument()
+
+    /* Metre erişilebilirlik rolü ve aria-valuenow doğru olmalı. */
+    const metres = canvas.getAllByRole('meter')
+    await expect(metres).toHaveLength(4)
+    await expect(metres[0]).toHaveAttribute('aria-valuenow', '12')
+    await expect(metres[3]).toHaveAttribute('aria-valuenow', '92')
+  },
+}
+
+/**
+ * Dolandırıcılık sinyalleri: çeşitli göstergeler eşik seviyelerine göre
+ * normal/uyarı/tehlike rozeti alır.
+ */
+export const FraudIndicators: Story = {
+  args: {
+    variant: 'risk',
+    user: verifiedRealEstateOffice,
+    listingCount: 6,
+    openReportCount: 3,
+    fraudIndicators: {
+      listingDeletionRate: 42,
+      priceAnomalyCount: 5,
+      duplicateImageCount: 3,
+      rapidRelisting: true,
+      contactChangeFrequency: 4,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    await expect(canvas.getByText('Dolandırıcılık Sinyalleri')).toBeInTheDocument()
+    await expect(canvas.getByText(/İlan Silme Oranı/)).toBeInTheDocument()
+    await expect(canvas.getByText(/Fiyat Anomalisi/)).toBeInTheDocument()
+    await expect(canvas.getByText(/Yinelenen Görsel/)).toBeInTheDocument()
+    await expect(canvas.getByText(/Hızlı Yeniden Listeleme/)).toBeInTheDocument()
+    await expect(canvas.getByText(/İletişim Değişikliği/)).toBeInTheDocument()
+
+    /* listingDeletionRate 42% → danger ("Tehlike") */
+    const tehlikeler = canvas.getAllByText('Tehlike')
+    await expect(tehlikeler.length).toBeGreaterThanOrEqual(3)
+  },
+}
+
+/**
+ * Etkileşim metrikleri: ortalama yanıt süresi, soru sayısı, yanıt oranı.
+ * `detailed` ve `risk` varyantlarında görünür.
+ */
+export const EngagementMetrics: Story = {
+  args: {
+    variant: 'detailed',
+    user: verifiedRealEstateOffice,
+    listingCount: 6,
+    openReportCount: 3,
+    engagementMetrics: {
+      avgResponseTime: 2,
+      inquiryCount: 48,
+      responseRate: 85,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    await expect(canvas.getByText('Etkileşim Metrikleri')).toBeInTheDocument()
+    await expect(canvas.getByText('2 saat')).toBeInTheDocument()
+    await expect(canvas.getByText('48')).toBeInTheDocument()
+    await expect(canvas.getByText('%85')).toBeInTheDocument()
+  },
+}
+
+/**
+ * En kötü senaryo: yüksek risk skoru, tüm dolandırıcılık sinyalleri tehlikede,
+ * askıya alınmış hesap, yaptırım geçmişi dolu.
+ */
+export const HighRiskSeller: Story = {
+  args: {
+    variant: 'risk',
+    user: suspendedIndividual,
+    listingCount: 3,
+    activeListingCount: 0,
+    openReportCount: 7,
+    sanctions: MERT_SICILI,
+    riskScore: { value: 92, level: 'critical' },
+    fraudIndicators: {
+      listingDeletionRate: 55,
+      priceAnomalyCount: 8,
+      duplicateImageCount: 12,
+      rapidRelisting: true,
+      contactChangeFrequency: 6,
+    },
+    engagementMetrics: {
+      avgResponseTime: 0.25,
+      inquiryCount: 2,
+      responseRate: 15,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    /* Risk skoru */
+    await expect(canvas.getByText(/Risk Skoru: 92 \(Kritik\)/)).toBeInTheDocument()
+    const metre = canvas.getByRole('meter')
+    await expect(metre).toHaveAttribute('aria-valuenow', '92')
+
+    /* Dolandırıcılık sinyalleri */
+    await expect(canvas.getByText('Dolandırıcılık Sinyalleri')).toBeInTheDocument()
+
+    /* Etkileşim metrikleri */
+    await expect(canvas.getByText('Etkileşim Metrikleri')).toBeInTheDocument()
+    await expect(canvas.getByText('15 dakika')).toBeInTheDocument()
+
+    /* Yaptırım geçmişi hâlâ duruyor */
+    await expect(canvas.getByText('Yaptırım geçmişi')).toBeInTheDocument()
+  },
+}
+
+/**
+ * Temiz satıcı: düşük risk skoru, hiç dolandırıcılık sinyali yok, iyi
+ * etkileşim metrikleri.
+ */
+export const CleanSeller: Story = {
+  args: {
+    variant: 'risk',
+    user: activeIndividualOwner,
+    listingCount: 8,
+    activeListingCount: 5,
+    openReportCount: 0,
+    sanctions: [],
+    riskScore: { value: 8, level: 'low' },
+    engagementMetrics: {
+      avgResponseTime: 1,
+      inquiryCount: 120,
+      responseRate: 97,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    await expect(canvas.getByText(/Risk Skoru: 8 \(Düşük\)/)).toBeInTheDocument()
+    const metre = canvas.getByRole('meter')
+    await expect(metre).toHaveAttribute('aria-valuenow', '8')
+
+    /* Dolandırıcılık sinyalleri bölümü hiç render edilmemeli. */
+    await expect(
+      canvas.queryByText('Dolandırıcılık Sinyalleri'),
+    ).not.toBeInTheDocument()
+
+    /* Temiz sinyaller */
+    await expect(canvas.getByText('Açık şikayet yok')).toBeInTheDocument()
+    await expect(canvas.getByText('Yaptırım kaydı yok')).toBeInTheDocument()
+
+    /* Etkileşim metrikleri */
+    await expect(canvas.getByText('Etkileşim Metrikleri')).toBeInTheDocument()
+    await expect(canvas.getByText('%97')).toBeInTheDocument()
+  },
 }

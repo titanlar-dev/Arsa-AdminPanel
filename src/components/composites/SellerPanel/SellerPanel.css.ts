@@ -381,3 +381,116 @@ export const missing = style({
 export const clean = style({
   color: vars.color.text.muted,
 })
+
+/* ─── Risk skoru ────────────────────────────────────────────────────── */
+
+/** Risk skoru bölümü: etiket, skor değeri ve görsel metre. */
+export const riskScoreGroup = style({
+  display: 'grid',
+  gap: vars.space[2],
+})
+
+/** "Risk Skoru: 73 (Yüksek)" satırı. */
+export const riskScoreLabel = style({
+  fontSize: vars.font.size.sm,
+  fontWeight: vars.font.weight.medium,
+  color: vars.color.text.primary,
+})
+
+/** Metre arka planı — dolgunun kabı. */
+export const riskMeterTrack = style({
+  height: '0.5rem',
+  background: vars.color.neutral[100],
+  borderRadius: vars.radius.full,
+  overflow: 'hidden',
+})
+
+/** Metrenin dolu kısmı; genişlik inline style ile verilir. */
+export const riskMeterFill = recipe({
+  base: {
+    height: '100%',
+    borderRadius: vars.radius.full,
+    transition: 'width 0.3s ease',
+  },
+
+  variants: {
+    level: {
+      low: { background: vars.color.success[600] },
+      medium: { background: vars.color.warning[600] },
+      high: { background: '#f97316' },
+      critical: { background: vars.color.danger[600] },
+    },
+  },
+
+  defaultVariants: { level: 'low' },
+})
+
+/* ─── Dolandırıcılık sinyalleri ─────────────────────────────────────── */
+
+/** Sinyal listesi kabı. */
+export const fraudGroup = style({
+  display: 'grid',
+  gap: vars.space[2],
+})
+
+/** "Dolandırıcılık Sinyalleri" başlığı. */
+export const fraudLabel = style({
+  fontSize: vars.font.size.sm,
+  color: vars.color.text.muted,
+})
+
+/** Sinyal öğeleri listesi. */
+export const fraudList = style({
+  display: 'grid',
+  gap: vars.space[2],
+  listStyle: 'none',
+  margin: 0,
+  padding: 0,
+
+  '@media': {
+    'screen and (min-width: 30rem)': {
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+})
+
+/** Tek bir sinyal öğesi. */
+export const fraudItem = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: vars.space[2],
+  padding: `${vars.space[2]} ${vars.space[3]}`,
+  background: vars.color.bg.subtle,
+  border: '1px solid',
+  borderColor: vars.color.border.subtle,
+  borderRadius: vars.radius.md,
+  fontSize: vars.font.size.sm,
+  color: vars.color.text.primary,
+})
+
+/** Sinyal ikonu kabı. */
+export const fraudItemIcon = style({
+  display: 'inline-flex',
+  flexShrink: 0,
+  color: vars.color.text.muted,
+})
+
+/** Sinyal metni — ikon ile rozet arasında flex büyür. */
+export const fraudItemText = style({
+  flex: '1 1 0%',
+  minWidth: 0,
+})
+
+/* ─── Etkileşim metrikleri ──────────────────────────────────────────── */
+
+/** Etkileşim metrikleri bölümü. */
+export const engagementGroup = style({
+  display: 'grid',
+  gap: vars.space[2],
+})
+
+/** "Etkileşim Metrikleri" başlığı. */
+export const engagementLabel = style({
+  fontSize: vars.font.size.sm,
+  color: vars.color.text.muted,
+})

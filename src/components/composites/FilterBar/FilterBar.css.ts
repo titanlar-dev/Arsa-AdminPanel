@@ -121,6 +121,26 @@ export const rangeInputs = style({
   gap: vars.space[2],
 })
 
+/**
+ * Konum filtresi: iki Select yan yana (il + ilce). `rangeInputs` ile aynı
+ * mantık: `minmax(0, 1fr)` tabanı sıfırlar, taşma engellenir.
+ */
+export const locationInputs = style({
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+  gap: vars.space[2],
+})
+
+/**
+ * Fiyat aralığı hazır butonları: yatay sarmalı, kucuk butonlar.
+ */
+export const presetButtons = style({
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: vars.space[1],
+  marginBlockStart: vars.space[1],
+})
+
 /** Switch kendi etiketini yanında taşır; etiketi üstte olan alanlarla hizalanması için. */
 export const switchField = style({
   minWidth: 0,

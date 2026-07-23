@@ -1,22 +1,34 @@
 import { NumberField } from '@base-ui/react/number-field'
 import { Minus, Plus } from 'lucide-react'
 import { FieldShell } from '../../internal/FieldShell'
-import type { NumberInputProps } from '../../../types/component-props'
+import type { NumberInputProps, ValidationState } from '../../../types/component-props'
 import { group, input, stepper } from './NumberInput.css'
 
 /**
- * Sayısal değer girişi: m², oda sayısı, kat sayısı, bina yaşı gibi alanlar için.
+ * Cozumlenmis dogrulama durumunu hesaplar. `error` > `validationState`.
+ */
+function resolveValidation(
+  error: string | undefined,
+  validationState: ValidationState | undefined,
+): ValidationState | undefined {
+  const hasError = error !== undefined && error !== ''
+  if (hasError) return 'error'
+  return validationState
+}
+
+/**
+ * Sayisal deger girisi: m2, oda sayisi, kat sayisi, bina yasi gibi alanlar icin.
  *
- * Artır/azalt butonlarının yanı sıra ok tuşlarıyla da değiştirilebilir; `min` ve
- * `max` sınırlarına gelindiğinde ilgili buton kendiliğinden devre dışı kalır.
+ * Artir/azalt butonlarinin yani sira ok tuslariyla da degistirilebilir; `min` ve
+ * `max` sinirlarina gelinde ilgili buton kendiliğinden devre disi kalir.
  *
- * Rakamlar `tabular-nums` ile hizalanır ve sağa yaslanır — alt alta gelen
- * sayıların basamakları çakışsın diye.
+ * Rakamlar `tabular-nums` ile hizalanir ve saga yaslanir -- alt alta gelen
+ * sayilarin basamaklari cakissin diye.
  *
- * Tutar girişi için `CurrencyInput` kullanın; o para birimini de yönetir.
+ * Tutar girisi icin `CurrencyInput` kullanin; o para birimini de yonetir.
  *
  * @example
- * <NumberInput label="Brüt m²" min={1} max={100000} value={brut} onValueChange={setBrut} />
+ * <NumberInput label="Brut m2" min={1} max={100000} value={brut} onValueChange={setBrut} />
  */
 export function NumberInput({
   value,
@@ -31,8 +43,14 @@ export function NumberInput({
   helperText,
   error,
   required = false,
+  validationState: validationStateProp,
+  validationMessage,
 }: NumberInputProps) {
-  const hasError = error !== undefined && error !== ''
+  const resolved = resolveValidation(error, validationStateProp)
+  const hasError = resolved === 'error'
+
+  const validationDataAttr =
+    resolved !== undefined && resolved !== 'error' ? resolved : undefined
 
   return (
     <FieldShell
@@ -41,13 +59,10 @@ export function NumberInput({
       {...(error !== undefined && { error })}
       required={required}
       disabled={disabled}
+      {...(validationStateProp !== undefined && { validationState: validationStateProp })}
+      {...(validationMessage !== undefined && { validationMessage })}
     >
       <NumberField.Root
-        // Base UI'ın varsayılanı "kullanıcının çalışma anı yerel ayarı": aynı
-        // değer Türkçe makinede `2.000.000`, İngilizce makinede `2,000,000`
-        // görünürdü. Türkçede virgül ondalık ayırıcıdır — moderatör fiyatı
-        // milyon katı yanlış okuyabilir. Panel tek dilli; `formatCurrency` de
-        // `tr-TR`'yi sabitliyor, aynı ekranda iki farklı biçim olmamalı.
         locale="tr-TR"
         disabled={disabled}
         readOnly={readOnly}
@@ -57,8 +72,6 @@ export function NumberInput({
         {...(max !== undefined && { max })}
         {...(step !== undefined && { step })}
         {...(onValueChange !== undefined && {
-          // Base UI boş kutuyu `null` ile bildirir; brifingin sözleşmesi
-          // `undefined` istiyor, o yüzden burada eşleniyor.
           onValueChange: (next: number | null) => onValueChange(next ?? undefined),
         })}
       >
@@ -66,6 +79,7 @@ export function NumberInput({
           className={group({ size })}
           data-invalid={hasError ? '' : undefined}
           data-disabled={disabled ? '' : undefined}
+          data-validation-state={validationDataAttr}
         >
           <NumberField.Decrement className={stepper} aria-label="Azalt">
             <Minus size={16} aria-hidden="true" />
@@ -73,7 +87,7 @@ export function NumberInput({
 
           <NumberField.Input className={input} />
 
-          <NumberField.Increment className={stepper} aria-label="Artır">
+          <NumberField.Increment className={stepper} aria-label="Artir">
             <Plus size={16} aria-hidden="true" />
           </NumberField.Increment>
         </NumberField.Group>

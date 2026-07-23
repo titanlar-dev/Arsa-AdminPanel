@@ -1,30 +1,35 @@
-import { vars } from './tokens/contract.css'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { RouterProvider } from 'react-router'
+import { router } from './router'
+import { ToastProvider } from './components/composites/ToastProvider/ToastProvider'
+import { KeyboardShortcutsProvider } from './components/composites/KeyboardShortcuts/KeyboardShortcuts'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      retry: 1,
+    },
+  },
+})
 
 /**
- * Uygulama kabuğu henüz kurulmadı.
+ * Uygulamanin kok bileseni.
  *
- * Bu aşamada geliştirme yüzeyi Storybook'tur (`pnpm storybook`).
- * Router, AppShell ve sayfalar brifingin Faz 3'ünde eklenecek.
+ * Saglayici sirasi:
+ * 1. QueryClientProvider — veri katmani (henuz mock, Faz 5'te gercek API)
+ * 2. ToastProvider — bildirim kuyruklama
+ * 3. KeyboardShortcutsProvider — global kisayollar ve yardim paleti
+ * 4. RouterProvider — sayfa yonlendirme
  */
 export function App() {
   return (
-    <main
-      style={{
-        display: 'grid',
-        placeItems: 'center',
-        minHeight: '100dvh',
-        padding: vars.space[8],
-        textAlign: 'center',
-      }}
-    >
-      <div>
-        <h1 style={{ fontSize: vars.font.size['3xl'], marginBottom: vars.space[2] }}>
-          İlan Admin Panel
-        </h1>
-        <p style={{ color: vars.color.text.secondary }}>
-          Component geliştirme Storybook üzerinden yürüyor: <code>pnpm storybook</code>
-        </p>
-      </div>
-    </main>
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <KeyboardShortcutsProvider>
+          <RouterProvider router={router} />
+        </KeyboardShortcutsProvider>
+      </ToastProvider>
+    </QueryClientProvider>
   )
 }

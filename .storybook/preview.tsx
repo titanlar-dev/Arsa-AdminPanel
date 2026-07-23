@@ -3,7 +3,7 @@ import type { Decorator, Preview } from '@storybook/react-vite'
 import { withQuery, withRouter } from '../src/storybook/decorators'
 import '../src/tokens/globals.css'
 
-type ThemeName = 'corporate-blue' | 'neutral-slate' | 'warm-amber'
+type ThemeName = 'corporate-blue' | 'neutral-slate' | 'warm-amber' | 'corporate-blue-dark'
 
 /**
  * Seçili paleti `<html data-theme="...">` üzerinden uygular.
@@ -45,6 +45,7 @@ const preview: Preview = {
           { value: 'corporate-blue', title: 'Kurumsal Mavi' },
           { value: 'neutral-slate', title: 'Nötr Slate' },
           { value: 'warm-amber', title: 'Sıcak Amber' },
+          { value: 'corporate-blue-dark', title: 'Kurumsal Mavi (Koyu)' },
         ],
       },
     },

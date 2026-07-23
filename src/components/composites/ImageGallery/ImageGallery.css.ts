@@ -227,6 +227,63 @@ export const brokenThumb = style({
   color: vars.color.text.muted,
 })
 
+/* ── Toplu moderasyon araç çubuğu ──────────────────────────────────────── */
+
+export const batchToolbar = style({
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: vars.space[2],
+  padding: vars.space[3],
+  background: vars.color.bg.subtle,
+  border: `1px solid ${vars.color.border.subtle}`,
+  borderRadius: vars.radius.lg,
+})
+
+export const batchSummary = style({
+  color: vars.color.text.muted,
+  fontSize: vars.font.size.sm,
+  marginInlineEnd: 'auto',
+})
+
+export const batchActions = style({
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: vars.space[2],
+})
+
+/* ── Fotoğraf seçim modu ──────────────────────────────────────────────── */
+
+export const thumbCheckbox = style({
+  position: 'absolute',
+  insetBlockStart: '0.25rem',
+  insetInlineStart: '0.25rem',
+  zIndex: 1,
+  display: 'grid',
+  placeItems: 'center',
+  width: '1.25rem',
+  height: '1.25rem',
+  borderRadius: vars.radius.sm,
+  background: 'rgba(255, 255, 255, 0.75)',
+  backdropFilter: 'blur(4px)',
+  border: `1px solid ${vars.color.border.subtle}`,
+  cursor: 'pointer',
+  /**
+   * `pointer-events: auto` butonun tıklamasını yutmasın diye checkbox
+   * üzerine tıklandığında event propagation JS'de durdurulur.
+   */
+})
+
+export const thumbSelected = style({
+  selectors: {
+    '&&': {
+      borderColor: vars.color.primary[600],
+      boxShadow: `inset 0 0 0 2px ${vars.color.primary[600]}`,
+    },
+  },
+})
+
 export const dialogBody = style({
   display: 'grid',
   gap: vars.space[4],

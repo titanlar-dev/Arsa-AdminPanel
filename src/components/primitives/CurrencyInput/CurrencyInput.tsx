@@ -3,27 +3,39 @@ import { Select as BaseSelect } from '@base-ui/react/select'
 import { ChevronDown } from 'lucide-react'
 import { FieldShell } from '../../internal/FieldShell'
 import { Currency } from '../../../types/domain'
-import type { CurrencyInputProps } from '../../../types/component-props'
+import type { CurrencyInputProps, ValidationState } from '../../../types/component-props'
 import * as listbox from '../../internal/listbox.css'
 import { currencyStatic, currencyTrigger, group, input } from './CurrencyInput.css'
 
-/** Para birimi kodları yerine kullanıcının tanıdığı semboller gösterilir. */
+/** Para birimi kodlari yerine kullanicinin tanidigi semboller gosterilir. */
 const CURRENCY_LABEL: Record<Currency, string> = {
-  [Currency.Try]: '₺ TRY',
+  [Currency.Try]: '\u20BA TRY',
   [Currency.Usd]: '$ USD',
-  [Currency.Eur]: '€ EUR',
-  [Currency.Gbp]: '£ GBP',
+  [Currency.Eur]: '\u20AC EUR',
+  [Currency.Gbp]: '\u00A3 GBP',
 }
 
 /**
- * Tutar girişi: fiyat, aidat, depozito, devir bedeli için.
+ * Cozumlenmis dogrulama durumunu hesaplar. `error` > `validationState`.
+ */
+function resolveValidation(
+  error: string | undefined,
+  validationState: ValidationState | undefined,
+): ValidationState | undefined {
+  const hasError = error !== undefined && error !== ''
+  if (hasError) return 'error'
+  return validationState
+}
+
+/**
+ * Tutar girisi: fiyat, aidat, depozito, devir bedeli icin.
  *
- * Tutar ve para birimi tek bir kontrolde toplanır — ikisi ayrı alanlarda
- * durursa kullanıcı birini değiştirip diğerini unutabilir ve `Money` tutarsız
- * kalır.
+ * Tutar ve para birimi tek bir kontrolde toplanir -- ikisi ayri alanlarda
+ * durursa kullanici birini degistirip digerini unutabilir ve `Money` tutarsiz
+ * kalir.
  *
- * `currencies` verilmezse para birimi sabit etiket olarak gösterilir; verilirse
- * seçilebilir hâle gelir. Rakamlar sağa yaslı ve `tabular-nums` ile hizalıdır.
+ * `currencies` verilmezse para birimi sabit etiket olarak gosterilir; verilirse
+ * secilebilir hale gelir. Rakamlar saga yasli ve `tabular-nums` ile hizalidir.
  *
  * @example
  * <CurrencyInput label="Fiyat" currency={Currency.Try} value={fiyat} onValueChange={setFiyat} />
@@ -42,9 +54,15 @@ export function CurrencyInput({
   helperText,
   error,
   required = false,
+  validationState: validationStateProp,
+  validationMessage,
 }: CurrencyInputProps) {
-  const hasError = error !== undefined && error !== ''
+  const resolved = resolveValidation(error, validationStateProp)
+  const hasError = resolved === 'error'
   const canChangeCurrency = currencies !== undefined && currencies.length > 1
+
+  const validationDataAttr =
+    resolved !== undefined && resolved !== 'error' ? resolved : undefined
 
   return (
     <FieldShell
@@ -53,10 +71,10 @@ export function CurrencyInput({
       {...(error !== undefined && { error })}
       required={required}
       disabled={disabled}
+      {...(validationStateProp !== undefined && { validationState: validationStateProp })}
+      {...(validationMessage !== undefined && { validationMessage })}
     >
       <NumberField.Root
-        // Yerel ayar sabitleniyor; gerekçesi NumberInput'takiyle aynı: varsayılan
-        // "kullanıcının makinesi" olduğu için tutar makineden makineye değişirdi.
         locale="tr-TR"
         disabled={disabled}
         required={required}
@@ -72,6 +90,7 @@ export function CurrencyInput({
           className={group({ size })}
           data-invalid={hasError ? '' : undefined}
           data-disabled={disabled ? '' : undefined}
+          data-validation-state={validationDataAttr}
         >
           <NumberField.Input className={input} />
 

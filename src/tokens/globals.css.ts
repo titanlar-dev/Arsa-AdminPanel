@@ -8,6 +8,14 @@ globalStyle(':root', {
   colorScheme: 'light',
 })
 
+/**
+ * Karanlık mod teması etkinken tarayıcıya bildiriyoruz: form kontrolleri,
+ * kaydırma çubukları ve sistem UI koyu renk şemasına geçer.
+ */
+globalStyle('[data-theme$="-dark"]', {
+  colorScheme: 'dark',
+})
+
 globalStyle('*, *::before, *::after', {
   boxSizing: 'border-box',
 })
@@ -25,6 +33,10 @@ globalStyle('html', {
   fontSize: '100%',
   color: vars.color.text.primary,
   background: vars.color.bg.canvas,
+  /** Tema gecislerinde yumusak renk gecisi (200ms). */
+  transitionProperty: 'background-color, color',
+  transitionDuration: '200ms',
+  transitionTimingFunction: 'ease-in-out',
   /**
    * Mobil tarayıcıların otomatik metin büyütmesini kilitler.
    *

@@ -1,5 +1,5 @@
-import { useId } from 'react'
-import { AlertCircle } from 'lucide-react'
+import { useId, useState } from 'react'
+import { AlertCircle, ChevronRight } from 'lucide-react'
 import { RejectionReason } from '../../../types/domain'
 import { REJECTION_REASON_DESCRIPTION, REJECTION_REASON_LABEL } from '../../../domain/labels'
 import { Checkbox } from '../../primitives/Checkbox'
@@ -19,6 +19,12 @@ const SECENEKLER: SelectOption[] = GEREKCELER.map((reason) => ({
 
 const NOT_SINIRI = 500
 
+const GUVEN_ETIKETI = {
+  high: 'Yuksek guven',
+  medium: 'Orta guven',
+  low: 'Dusuk guven',
+} as const
+
 /**
  * Red ve düzeltme kararı için gerekçe ve not toplar.
  *
@@ -31,6 +37,9 @@ const NOT_SINIRI = 500
  * yer orasıdır. `list` ve `compactSelect` yalnız etiketi gösterir ve zaten
  * kararını vermiş kullanıcının hızlı işaretlemesi içindir.
  *
+ * `suggestedReasons` verilirse el ile seçim listesinin üstünde "Önerilen Sebepler"
+ * bölümü gösterilir. Bir öneriye tıklamak o gerekçeyi seçer/seçimden çıkarır.
+ *
  * **Zorunluluğu denetlemez.** `required` yalnız işareti koyar; "bu karar
  * gönderilebilir mi" sorusunun cevabı `domain/moderationActions.ts`'teki
  * `isModerationDecisionComplete`'te ve gönderimi kapatmak kararın sahibi olan
@@ -42,6 +51,7 @@ const NOT_SINIRI = 500
  *   value={gerekceler}
  *   note={not}
  *   required
+ *   suggestedReasons={mapChecksToSuggestions(checks)}
  *   onValueChange={setGerekceler}
  *   onNoteChange={setNot}
  * />
@@ -53,29 +63,105 @@ export function RejectionReasonPicker({
   required = false,
   disabled = false,
   error,
+  suggestedReasons,
   onValueChange,
   onNoteChange,
 }: RejectionReasonPickerProps) {
   const hataId = useId()
   const hataVar = error !== undefined && error !== ''
+  const [suggestionsExpanded, setSuggestionsExpanded] = useState(true)
 
   const degistir = (reason: RejectionReason, secili: boolean) => {
     onValueChange(secili ? [...value, reason] : value.filter((mevcut) => mevcut !== reason))
   }
 
+  /** Toggle a reason from a suggestion click. */
+  const toggleSuggestion = (reason: RejectionReason) => {
+    if (disabled) return
+    const secili = value.includes(reason)
+    degistir(reason, !secili)
+  }
+
+  /** Set of reasons that have a suggestion, for highlighting manual list items. */
+  const suggestedReasonSet = new Set(suggestedReasons?.map((s) => s.reason))
+
+  const hasSuggestions =
+    suggestedReasons !== undefined && suggestedReasons.length > 0
+
+  const suggestionsBlock = hasSuggestions ? (
+    <div className={css.suggestionsSection}>
+      <button
+        type="button"
+        className={css.suggestionToggle}
+        data-expanded={suggestionsExpanded}
+        aria-expanded={suggestionsExpanded}
+        onClick={() => setSuggestionsExpanded((prev) => !prev)}
+      >
+        <ChevronRight size={14} className={css.suggestionToggleIcon} aria-hidden="true" />
+        Önerilen Sebepler ({suggestedReasons.length})
+      </button>
+
+      <div className={css.suggestionListWrapper({ open: suggestionsExpanded })}>
+        <div className={css.suggestionListInner}>
+          <ul className={css.suggestionList} role="list">
+            {suggestedReasons.map((suggestion) => {
+              const isSelected = value.includes(suggestion.reason)
+              return (
+                <li key={`${suggestion.reason}-${suggestion.source}`}>
+                  <div
+                    className={css.suggestionCard({ selected: isSelected })}
+                    role="button"
+                    tabIndex={disabled ? -1 : 0}
+                    aria-pressed={isSelected}
+                    aria-disabled={disabled}
+                    onClick={() => toggleSuggestion(suggestion.reason)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        toggleSuggestion(suggestion.reason)
+                      }
+                    }}
+                  >
+                    <div className={css.suggestionBody}>
+                      <span className={css.suggestionLabel}>
+                        {REJECTION_REASON_LABEL[suggestion.reason]}
+                      </span>
+                      <span className={css.suggestionSource}>{suggestion.source}</span>
+                    </div>
+
+                    <span className={css.confidenceBadge({ level: suggestion.confidence })}>
+                      <span
+                        className={css.confidenceDot({ level: suggestion.confidence })}
+                        aria-hidden="true"
+                      />
+                      {GUVEN_ETIKETI[suggestion.confidence]}
+                    </span>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      </div>
+    </div>
+  ) : null
+
   return (
     <div className={css.root}>
       {variant === 'compactSelect' ? (
-        <MultiSelect
-          label="Gerekçe"
-          placeholder="Gerekçe seçin"
-          options={SECENEKLER}
-          values={value}
-          required={required}
-          disabled={disabled}
-          {...(error !== undefined && { error })}
-          onValuesChange={(next) => onValueChange(next as RejectionReason[])}
-        />
+        <>
+          {suggestionsBlock}
+          <MultiSelect
+            label="Gerekçe"
+            placeholder="Gerekçe seçin"
+            options={SECENEKLER}
+            values={value}
+            required={required}
+            disabled={disabled}
+            {...(error !== undefined && { error })}
+            onValuesChange={(next) => onValueChange(next as RejectionReason[])}
+          />
+        </>
       ) : (
         /*
           `<fieldset>` + `<legend>`: birbirine bağlı seçim kutuları grubunun
@@ -97,11 +183,13 @@ export function RejectionReasonPicker({
             ) : null}
           </legend>
 
+          {suggestionsBlock}
+
           <div className={css.options({ variant })}>
             {GEREKCELER.map((reason) => (
               <Checkbox
                 key={reason}
-                className={variant === 'cards' ? css.card : css.row}
+                className={`${variant === 'cards' ? css.card : css.row}${suggestedReasonSet.has(reason) && !value.includes(reason) ? ` ${css.highlightedCard}` : ''}`}
                 label={REJECTION_REASON_LABEL[reason]}
                 {...(variant === 'cards' && {
                   description: REJECTION_REASON_DESCRIPTION[reason],

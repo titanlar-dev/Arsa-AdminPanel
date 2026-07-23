@@ -3,7 +3,7 @@ import { Select as BaseSelect } from '@base-ui/react/select'
 import { Check, ChevronDown, Search, X } from 'lucide-react'
 import { FieldShell } from '../../internal/FieldShell'
 import { Spinner } from '../Spinner'
-import type { SelectOption, SelectProps } from '../../../types/component-props'
+import type { SelectOption, SelectProps, ValidationState } from '../../../types/component-props'
 import * as css from '../../internal/listbox.css'
 
 function OptionRow({ option }: { option: SelectOption }) {
@@ -23,27 +23,39 @@ function OptionRow({ option }: { option: SelectOption }) {
 }
 
 /**
- * Tekli seçim.
+ * Cozumlenmis dogrulama durumunu hesaplar. `error` > `validationState`.
+ */
+function resolveValidation(
+  error: string | undefined,
+  validationState: ValidationState | undefined,
+): ValidationState | undefined {
+  const hasError = error !== undefined && error !== ''
+  if (hasError) return 'error'
+  return validationState
+}
+
+/**
+ * Tekli secim.
  *
- * İki farklı etkileşim modeli sunar ve `searchable` hangisinin kullanılacağını
+ * Iki farkli etkilesim modeli sunar ve `searchable` hangisinin kullanilacagini
  * belirler:
  *
- * - `searchable=false`: klasik açılır liste. Az sayıda seçenek için.
- * - `searchable=true`: yazarak filtrelenen liste. İl/ilçe/mahalle gibi uzun
- *   listelerde zorunludur — 900 ilçeyi kaydırarak bulmak kullanılabilir değildir.
+ * - `searchable=false`: klasik acilir liste. Az sayida secenek icin.
+ * - `searchable=true`: yazarak filtrelenen liste. Il/ilce/mahalle gibi uzun
+ *   listelerde zorunludur -- 900 ilceyi kaydirarak bulmak kullanilabilir degildir.
  *
- * İkisi Base UI'ın farklı primitive'leri üzerine kuruludur (Select ve Combobox);
- * klavye davranışları da bu yüzden farklıdır ve her biri kendi modeli için doğrudur.
+ * Ikisi Base UI'in farkli primitive'leri uzerine kuruludur (Select ve Combobox);
+ * klavye davranislari da bu yuzden farklidir ve her biri kendi modeli icin dogrudur.
  *
- * 2-4 seçenek varsa ve hepsi görünmeliyse `RadioGroup` daha uygun olabilir.
+ * 2-4 secenek varsa ve hepsi gorunmeliyse `RadioGroup` daha uygun olabilir.
  *
  * @example
- * <Select label="İl" options={iller} searchable value={il} onValueChange={setIl} />
+ * <Select label="Il" options={iller} searchable value={il} onValueChange={setIl} />
  */
 export function Select({
   value,
   options,
-  placeholder = 'Seçin',
+  placeholder = 'Secin',
   size = 'md',
   disabled = false,
   searchable = false,
@@ -54,26 +66,15 @@ export function Select({
   helperText,
   error,
   required = false,
+  validationState: validationStateProp,
+  validationMessage,
 }: SelectProps) {
-  const hasError = error !== undefined && error !== ''
+  const resolved = resolveValidation(error, validationStateProp)
+  const hasError = resolved === 'error'
   const selected = options.find((option) => option.value === value)
 
-  /*
-    `value` aşağıda koşullu spread ile geçilmez: sözleşmenin `undefined`'ı
-    ("seçim yok") Base UI'a `null` diye çevrilir.
-
-    Base UI kontrollü olup olmadığına **ilk render'daki** `value`'ya bakarak karar
-    veriyor ve `undefined`'ı "kontrolsüz" sayıyor. Koşullu spread seçim yokken
-    prop'u hiç geçirmediğinden, `useState<string | undefined>(undefined)` ile
-    başlayan her çağıran (ImageGallery'nin fotoğraf reddi, aşağıdaki Interactive
-    story) Select'i önce kontrolsüz kuruyor, ilk seçimde kontrollüye çeviriyor ve
-    Base UI her seçimde console.error basıyordu. `null` geçmek kontrollülüğü
-    component'in ömrü boyunca sabitler.
-
-    Repodaki diğer koşullu spread'ler (`error`, `label`) doğrudur: onlar
-    `exactOptionalPropertyTypes` içindir ve orada yokluk ile `undefined` aynı
-    şeydir. `value`'da değildir — yokluk "kontrolsüz" demektir.
-  */
+  const validationDataAttr =
+    resolved !== undefined && resolved !== 'error' ? resolved : undefined
 
   const shell = (children: React.ReactNode) => (
     <FieldShell
@@ -82,6 +83,8 @@ export function Select({
       {...(error !== undefined && { error })}
       required={required}
       disabled={disabled}
+      {...(validationStateProp !== undefined && { validationState: validationStateProp })}
+      {...(validationMessage !== undefined && { validationMessage })}
     >
       {children}
     </FieldShell>
@@ -102,13 +105,14 @@ export function Select({
           className={css.trigger({ size })}
           data-invalid={hasError ? '' : undefined}
           data-disabled={disabled ? '' : undefined}
+          data-validation-state={validationDataAttr}
         >
           <span className={css.icon}>
             <Search size={16} aria-hidden="true" />
           </span>
           <Combobox.Input className={css.searchInput} placeholder={placeholder} />
           {clearable ? (
-            <Combobox.Clear className={css.chipRemove} aria-label="Seçimi temizle">
+            <Combobox.Clear className={css.chipRemove} aria-label="Secimi temizle">
               <X size={16} aria-hidden="true" />
             </Combobox.Clear>
           ) : null}
@@ -122,11 +126,11 @@ export function Select({
             <Combobox.Popup className={css.popup}>
               {loading ? (
                 <div className={css.empty}>
-                  <Spinner size="sm" label="Seçenekler yükleniyor" />
+                  <Spinner size="sm" label="Secenekler yukleniyor" />
                 </div>
               ) : (
                 <>
-                  <Combobox.Empty className={css.empty}>Sonuç bulunamadı</Combobox.Empty>
+                  <Combobox.Empty className={css.empty}>Sonuc bulunamadi</Combobox.Empty>
                   <Combobox.List>
                     {(option: SelectOption) => (
                       <Combobox.Item
@@ -161,11 +165,12 @@ export function Select({
         className={css.trigger({ size })}
         data-invalid={hasError ? '' : undefined}
         data-disabled={disabled ? '' : undefined}
+        data-validation-state={validationDataAttr}
       >
         <BaseSelect.Value className={css.value}>
           {selected?.label ?? <span className={css.placeholder}>{placeholder}</span>}
         </BaseSelect.Value>
-        {loading ? <Spinner size="sm" label="Yükleniyor" /> : null}
+        {loading ? <Spinner size="sm" label="Yukleniyor" /> : null}
         <BaseSelect.Icon className={css.icon}>
           <ChevronDown size={16} aria-hidden="true" />
         </BaseSelect.Icon>
@@ -175,7 +180,7 @@ export function Select({
         <BaseSelect.Positioner className={css.positioner} sideOffset={4}>
           <BaseSelect.Popup className={css.popup}>
             {options.length === 0 ? (
-              <div className={css.empty}>Seçenek yok</div>
+              <div className={css.empty}>Secenek yok</div>
             ) : (
               options.map((option) => (
                 <BaseSelect.Item

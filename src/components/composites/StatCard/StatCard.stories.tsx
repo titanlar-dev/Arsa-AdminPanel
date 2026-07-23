@@ -531,6 +531,175 @@ export const Mobile: Story = {
   },
 }
 
+/* ---------- Sparkline stories ---------- */
+
+/** Yedi gunluk yukselen trend verisi. */
+const YUKSELIS_SERISI = [120, 135, 128, 145, 160, 155, 172]
+
+/** Yedi gunluk duz trend verisi. */
+const DUZ_SERISI = [100, 102, 99, 101, 100, 98, 101]
+
+/** Gercekci emlak KPI verileri: gunluk bekleyen ilan. */
+const BEKLEYEN_SERISI = [37, 42, 38, 45, 50, 48, 37]
+
+/** Gercekci emlak KPI verileri: gunluk yeni ilan. */
+const YENI_ILAN_SERISI = [12, 18, 15, 22, 19, 25, 28]
+
+/** Gercekci emlak KPI verileri: gunluk red orani (yuzdeler). */
+const RED_ORANI_SERISI = [6.5, 7.2, 8.1, 7.8, 8.3, 8.5, 8.3]
+
+/** Gercekci emlak KPI verileri: ortalama inceleme suresi (dakika). */
+const INCELEME_SURESI_SERISI = [18.5, 17.2, 16.8, 15.5, 15.1, 14.8, 15.3]
+
+/** Tek deger: iki noktanin altinda sparkline render edilmez. */
+const TEK_DEGER = [42]
+
+/** Cok buyuk degerler: olcekleme dogru calistigini dogrular. */
+const BUYUK_DEGERLER = [1_284_937, 1_305_200, 1_298_400, 1_350_000, 1_420_000, 1_380_000, 1_450_000]
+
+/** Yedi gunluk trend verisiyle StatCard. */
+export const WithSparkline: Story = {
+  args: {
+    label: 'Bekleyen ilan',
+    value: dashboardMetrics.pendingReviewCount,
+    description: 'Son 7 gunun trendi',
+    icon: <Clock size={20} />,
+    trend: KUYRUK_ARTTI,
+    sparklineData: BEKLEYEN_SERISI,
+  },
+}
+
+/** Uc kart varyantinin tumu sparkline ile. */
+export const SparklineVariants: Story = {
+  parameters: { layout: 'fullscreen' },
+  render: () => (
+    <div style={{ display: 'grid', gap: '1.5rem', padding: '1rem', maxWidth: '22rem' }}>
+      {VARYANTLAR.map((variant) => (
+        <div key={variant} style={{ display: 'grid', gap: '0.5rem' }}>
+          <span style={{ fontSize: '1rem', opacity: 0.6 }}>{variant}</span>
+          <StatCard
+            variant={variant}
+            label="Bekleyen ilan"
+            value={dashboardMetrics.pendingReviewCount}
+            description="Moderasyon kuyrugu"
+            icon={<Clock size={20} />}
+            trend={KUYRUK_ARTTI}
+            sparklineData={BEKLEYEN_SERISI}
+          />
+        </div>
+      ))}
+    </div>
+  ),
+}
+
+/** Duygu renkleri: yukselen (yesil), dusen (kirmizi), duz (primary). */
+export const SparklineSentiments: Story = {
+  parameters: { layout: 'fullscreen' },
+  render: () => (
+    <div style={{ display: 'grid', gap: '1rem', padding: '1rem', maxWidth: '22rem' }}>
+      <StatCard
+        label="Bugunku yeni ilan"
+        value={dashboardMetrics.newListingCountToday}
+        description="Artis: yesil sparkline"
+        trend={GIRIS_ARTTI}
+        sparklineData={YUKSELIS_SERISI}
+      />
+      <StatCard
+        label="Red orani"
+        value={yuzde(dashboardMetrics.rejectionRate)}
+        description="Artis: kirmizi sparkline (kotu haber)"
+        trend={RED_ORANI_ARTTI}
+        sparklineData={RED_ORANI_SERISI}
+      />
+      <StatCard
+        label="Acik sikayet"
+        value={dashboardMetrics.openReportCount}
+        description="Degisim yok: primary sparkline"
+        trend={SABIT}
+        sparklineData={DUZ_SERISI}
+      />
+    </div>
+  ),
+}
+
+/** Kenar durumlari: tek nokta, bos dizi, cok buyuk degerler. */
+export const SparklineEdgeCases: Story = {
+  parameters: { layout: 'fullscreen' },
+  render: () => (
+    <div style={{ display: 'grid', gap: '1rem', padding: '1rem', maxWidth: '22rem' }}>
+      <StatCard
+        label="Tek nokta"
+        value={42}
+        description="sparklineData=[42]: render edilmez"
+        sparklineData={TEK_DEGER}
+      />
+      <StatCard
+        label="Bos dizi"
+        value={0}
+        description="sparklineData=[]: render edilmez"
+        sparklineData={[]}
+      />
+      <StatCard
+        label="Buyuk degerler"
+        value="1.450.000 TL"
+        description="Olcekleme dogru calisir"
+        trend={{ direction: 'up', value: '+%12,9', sentiment: 'positive' }}
+        sparklineData={BUYUK_DEGERLER}
+      />
+    </div>
+  ),
+}
+
+/** Gercekci emlak KPI dashboard'u: 4 kart, sparkline'li. */
+export const DashboardWithSparklines: Story = {
+  parameters: { layout: 'fullscreen' },
+  render: () => (
+    <div
+      style={{
+        display: 'grid',
+        gap: '1rem',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 14rem), 1fr))',
+        padding: '1rem',
+      }}
+    >
+      <StatCard
+        variant="accent"
+        label="Bekleyen ilan"
+        value={dashboardMetrics.pendingReviewCount}
+        description="Moderasyon kuyrugu"
+        icon={<Clock size={20} />}
+        trend={KUYRUK_ARTTI}
+        sparklineData={BEKLEYEN_SERISI}
+        onClick={fn()}
+      />
+      <StatCard
+        label="Bugunku yeni ilan"
+        value={dashboardMetrics.newListingCountToday}
+        description="Bugunku girisler"
+        icon={<FilePlus2 size={20} />}
+        trend={GIRIS_ARTTI}
+        sparklineData={YENI_ILAN_SERISI}
+      />
+      <StatCard
+        label="Red orani"
+        value={yuzde(dashboardMetrics.rejectionRate)}
+        description="Son 30 gun"
+        icon={<Percent size={20} />}
+        trend={RED_ORANI_ARTTI}
+        sparklineData={RED_ORANI_SERISI}
+      />
+      <StatCard
+        label="Ortalama inceleme suresi"
+        value={dakika(dashboardMetrics.averageReviewMinutes)}
+        description="Kuyruga giristen karara"
+        icon={<Timer size={20} />}
+        trend={SURE_DUSTU}
+        sparklineData={INCELEME_SURESI_SERISI}
+      />
+    </div>
+  ),
+}
+
 export const VariantsComparison: Story = {
   parameters: { layout: 'fullscreen' },
   render: (args) => (

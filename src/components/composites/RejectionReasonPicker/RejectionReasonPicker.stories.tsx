@@ -1,8 +1,15 @@
 import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, within } from 'storybook/test'
-import { RejectionReason } from '../../../types/domain'
+import {
+  AutomatedCheckCode,
+  AutomatedCheckResultStatus,
+  RejectionReason,
+  type AutomatedCheckResult,
+} from '../../../types/domain'
+import { AutomatedChecksPanel } from '../AutomatedChecksPanel'
 import { RejectionReasonPicker } from './RejectionReasonPicker'
+import { mapChecksToSuggestions, type SuggestedReason } from './checkToReason'
 
 const VARYANTLAR = ['cards', 'list', 'compactSelect'] as const
 
@@ -17,10 +24,10 @@ const meta = {
     docs: {
       description: {
         component:
-          'Gerekçe ve notu **birlikte** toplar: gerekçe hangi kuralın çiğnendiğini, not bu ilanda ' +
-          'tam olarak neyin yanlış olduğunu söyler. İlan sahibine giden mesaj ikisinin toplamıdır — ' +
-          'tek başına "Yanıltıcı veya Eksik Bilgi" hiçbir şeyi düzeltmez. Zorunluluğu **denetlemez**: ' +
-          '`required` yalnız işareti koyar, gönderimi kapatmak kararın sahibi olan üst katmanın işi ' +
+          'Gerekce ve notu **birlikte** toplar: gerekce hangi kuralin cignendigini, not bu ilanda ' +
+          'tam olarak neyin yanlis oldugunu soyler. Ilan sahibine giden mesaj ikisinin toplamidir -- ' +
+          'tek basina "Yaniltici veya Eksik Bilgi" hicbir seyi duzeltmez. Zorunlulugu **denetlemez**: ' +
+          '`required` yalniz isareti koyar, gonderimi kapatmak kararin sahibi olan ust katmanin isi ' +
           '(`isModerationDecisionComplete`).',
       },
     },
@@ -28,12 +35,12 @@ const meta = {
       project: 'admin-panel',
       role: 'form-group',
       useWhen: [
-        'Red veya düzeltme kararında gerekçe ve not toplanacaksa',
-        'ModerationActionBar dışında, karar formunun kendi ekranında',
+        'Red veya duzeltme kararinda gerekce ve not toplanacaksa',
+        'ModerationActionBar disinda, karar formunun kendi ekraninda',
       ],
       doNotUseWhen: [
-        'Karar butonlarıyla birlikte tam akış gerekiyorsa — ModerationActionBar zaten bunu içeriyor',
-        'Şikayet gerekçesi için — o ReportReason, ayrı bir enum',
+        'Karar butonlariyla birlikte tam akis gerekiyorsa -- ModerationActionBar zaten bunu iceriyor',
+        'Sikayet gerekcesi icin -- o ReportReason, ayri bir enum',
       ],
     },
   },
@@ -62,22 +69,22 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
-/** Kararın asıl verildiği görünüm: her gerekçe açıklamasıyla birlikte. */
+/** Kararin asil verildigi gorunum: her gerekce aciklamasiyla birlikte. */
 export const Cards: Story = {
   args: { variant: 'cards' },
 }
 
-/** Açıklamasız, sıkışık. Dialog içinde dikey alan pahalıdır. */
+/** Aciklamasiz, sikisik. Dialog icinde dikey alan pahalidir. */
 export const List: Story = {
   args: { variant: 'list' },
 }
 
-/** Tek satır: toolbar ve satır içi kullanım. */
+/** Tek satir: toolbar ve satir ici kullanim. */
 export const CompactSelect: Story = {
   args: { variant: 'compactSelect' },
 }
 
-/** Hiçbir gerekçe seçilmemiş, not boş — dialog ilk açıldığındaki hâli. */
+/** Hicbir gerekce secilmemis, not bos -- dialog ilk acildigindaki hali. */
 export const Empty: Story = {
   args: { value: [], note: '' },
 }
@@ -85,60 +92,60 @@ export const Empty: Story = {
 export const Selected: Story = {
   args: {
     value: [RejectionReason.MisleadingOrIncompleteInfo, RejectionReason.PricingError],
-    note: 'Net m² 128 yazılmış, tapu belgesinde 118 görünüyor. Fiyat da benzer ilanların yaklaşık on katı.',
+    note: 'Net m2 128 yazilmis, tapu belgesinde 118 gorunuyor. Fiyat da benzer ilanlarin yaklasik on kati.',
   },
 }
 
-/** Gerekçe seçilmeden gönderilmeye çalışılmış. */
+/** Gerekce secilmeden gonderilmeye calisilmis. */
 export const Error: Story = {
   args: {
     required: true,
-    error: 'En az bir gerekçe seçin.',
-    note: 'Açıklamadaki bilgiler tapu belgesiyle uyuşmuyor.',
+    error: 'En az bir gerekce secin.',
+    note: 'Aciklamadaki bilgiler tapu belgesiyle uyusmuyor.',
   },
 }
 
-/** Karar gönderilirken alanlar kilitlenir; yarıda değiştirilen gerekçe yükü bozar. */
+/** Karar gonderilirken alanlar kilitlenir; yarida degistirilen gerekce yuku bozar. */
 export const Disabled: Story = {
   args: {
     disabled: true,
     value: [RejectionReason.DuplicateListing],
-    note: 'Aynı gayrimenkule ait aktif bir ilan bulundu.',
+    note: 'Ayni gayrimenkule ait aktif bir ilan bulundu.',
   },
 }
 
-/** Zorunlu işareti hem gerekçe grubunda hem notta görünür. */
+/** Zorunlu isareti hem gerekce grubunda hem notta gorunur. */
 export const Required: Story = {
   args: { required: true },
 }
 
 /**
- * Uzun içerik: on beş gerekçenin tamamı seçili, not sınıra dayanmış.
+ * Uzun icerik: on bes gerekcenin tamami secili, not sinira dayanmis.
  *
- * Sayaç sınıra yaklaşınca renk değiştirir; kartlar sarar, taşmaz.
+ * Sayac sinira yaklasinca renk degistirir; kartlar sarar, tasmaz.
  */
 export const LongContent: Story = {
   args: {
     value: Object.values(RejectionReason),
     required: true,
     error:
-      'Bu ilan için seçilen gerekçelerin bir kısmı birbiriyle çelişiyor: "Mükerrer İlan" ile "Sahte İlan Şüphesi" aynı anda seçildiğinde ilan sahibine gönderilecek mesaj iki farklı düzeltme talimatı içerir.',
-    note: 'İlanın başlığında "acil satılık" vurgusu tekrarlı büyük harfle yazılmış, açıklamada iki farklı telefon numarası ve bir yönlendirme bağlantısı bulunuyor. Fotoğrafların dördü başka bir ilandan alınmış, ikisi filigranlı. Net metrekare 128 yazılmış ancak tapu belgesinde 118 görünüyor. Fiyat aynı mahalledeki benzer ilanların yaklaşık on katı. Konum bilgisi Caferağa olarak girilmiş, koordinat Moda sınırlarında. Yetki belgesi yüklenmemiş.',
+      'Bu ilan icin secilen gerekcelerin bir kismi birbiriyle celisiyor: "Mukerrer Ilan" ile "Sahte Ilan Suphesi" ayni anda secildiginde ilan sahibine gonderilecek mesaj iki farkli duzeltme talimati icerir.',
+    note: 'Ilanin basliginda "acil satirlik" vurgusu tekrarli buyuk harfle yazilmis, aciklamada iki farkli telefon numarasi ve bir yonlendirme baglantisi bulunuyor. Fotograflarin dordu baska bir ilandan alinmis, ikisi filigranli. Net metrekare 128 yazilmis ancak tapu belgesinde 118 gorunuyor. Fiyat ayni mahalledeki benzer ilanlarin yaklasik on kati. Konum bilgisi Caferaga olarak girilmis, koordinat Moda sinirlarinda. Yetki belgesi yuklenmemis.',
   },
 }
 
-/** Dar ekranda kartlar tek kolona iner ve fieldset küçülmeyi reddetmemeli. */
+/** Dar ekranda kartlar tek kolona iner ve fieldset kuculmeyi reddetmemeli. */
 export const Mobile: Story = {
   globals: { viewport: { value: 'mobile320' } },
   args: { value: [RejectionReason.InappropriateImage] },
 }
 
 /**
- * Grubun erişilebilir adı `<legend>`'den gelmeli.
+ * Grubun erisilebilir adi `<legend>`'den gelmeli.
  *
- * DOM'dan ölçülüyor: on beş kutunun her biri kendi etiketini taşıyor ama ekran
- * okuyucu kullanıcısı gruba girdiğinde "Gerekçe, grup" duymazsa bunların neyin
- * seçenekleri olduğunu bilemez.
+ * DOM'dan olculuyor: on bes kutunun her biri kendi etiketini tasiyor ama ekran
+ * okuyucu kullanicisi gruba girdiginde "Gerekce, grup" duymazsa bunlarin neyin
+ * secenekleri oldugunu bilemez.
  */
 export const GroupHasAccessibleName: Story = {
   play: async ({ canvasElement }) => {
@@ -147,7 +154,7 @@ export const GroupHasAccessibleName: Story = {
   },
 }
 
-/** Hata mesajı gruba `aria-describedby` ile bağlanmalı — görsel değil, programatik bağ. */
+/** Hata mesaji gruba `aria-describedby` ile baglanmali -- gorsel degil, programatik bag. */
 export const ErrorIsBoundToGroup: Story = {
   args: { required: true, error: 'En az bir gerekçe seçin.' },
   play: async ({ canvasElement }) => {
@@ -163,7 +170,7 @@ export const ErrorIsBoundToGroup: Story = {
   },
 }
 
-/** Seçim, listenin tamamıyla bildirilmeli — picker kendi kopyasını tutmaz. */
+/** Secim, listenin tamamiyla bildirilmeli -- picker kendi kopyasini tutmaz. */
 export const SelectingReportsWholeList: Story = {
   args: { value: [RejectionReason.WrongCategory] },
   play: async ({ canvasElement, args }) => {
@@ -178,7 +185,7 @@ export const SelectingReportsWholeList: Story = {
   },
 }
 
-/** Seçili bir gerekçeye tekrar basmak onu listeden çıkarmalı. */
+/** Secili bir gerekceye tekrar basmak onu listeden cikarmali. */
 export const DeselectingRemovesFromList: Story = {
   args: { value: [RejectionReason.WrongCategory, RejectionReason.PricingError] },
   play: async ({ canvasElement, args }) => {
@@ -190,7 +197,7 @@ export const DeselectingRemovesFromList: Story = {
   },
 }
 
-/** Not her tuş vuruşunda bildirilmeli; geciktirme çağıranın işi. */
+/** Not her tus vurusunda bildirilmeli; geciktirme cagiranin isi. */
 export const NoteReportsEveryKeystroke: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
@@ -202,14 +209,14 @@ export const NoteReportsEveryKeystroke: Story = {
 }
 
 /**
- * `disabled` iken hem kutular hem not kilitli olmalı.
+ * `disabled` iken hem kutular hem not kilitli olmali.
  *
- * Kutularda `toBeDisabled()` **kullanılmıyor**: Base UI'ın Checkbox'ı bir
- * `<span role="checkbox">` render ediyor ve devre dışılığını `aria-disabled`
- * ile bildiriyor. `toBeDisabled()` yalnız native `disabled` attribute'unu
- * tanır, span'de onu bulamaz ve kutu gerçekten kilitliyken de düşer —
- * yani yanlış olan matcher'dır, component değil. Notta ise gerçek bir
- * `<textarea disabled>` var, orada native matcher doğru araç.
+ * Kutularda `toBeDisabled()` **kullanilmiyor**: Base UI'in Checkbox'i bir
+ * `<span role="checkbox">` render ediyor ve devre disililigini `aria-disabled`
+ * ile bildiriyor. `toBeDisabled()` yalniz native `disabled` attribute'unu
+ * tanir, span'de onu bulamaz ve kutu gercekten kilitliyken de duser --
+ * yani yanlis olan matcher'dir, component degil. Notta ise gercek bir
+ * `<textarea disabled>` var, orada native matcher dogru arac.
  */
 export const DisabledLocksEveryControl: Story = {
   args: { disabled: true, value: [RejectionReason.DuplicateListing] },
@@ -224,7 +231,7 @@ export const DisabledLocksEveryControl: Story = {
   },
 }
 
-/** Gerçek seçimle: kartlar işaretlendikçe vurgulanır, not sayacı işler. */
+/** Gercek secimle: kartlar isaretlendikce vurgulanir, not sayaci isler. */
 export const Interactive: Story = {
   render: function Render(args) {
     const [gerekceler, setGerekceler] = useState<RejectionReason[]>([])
@@ -254,4 +261,175 @@ export const VariantsComparison: Story = {
       ))}
     </div>
   ),
+}
+
+/* ── Suggestion stories ──────────────────────────────────────────────── */
+
+const THREE_SUGGESTIONS: SuggestedReason[] = [
+  {
+    reason: RejectionReason.MisleadingOrIncompleteInfo,
+    confidence: 'high',
+    source: 'Zorunlu Alanlar',
+  },
+  {
+    reason: RejectionReason.DuplicateListing,
+    confidence: 'high',
+    source: 'Mükerrer İçerik',
+  },
+  {
+    reason: RejectionReason.PricingError,
+    confidence: 'medium',
+    source: 'Fiyat Anomalisi',
+  },
+]
+
+/** Uc basarisiz kontrolden turetilen onerilerle. */
+export const WithSuggestions: Story = {
+  args: {
+    suggestedReasons: THREE_SUGGESTIONS,
+  },
+}
+
+/** Tek yuksek guvenli oneri. */
+export const HighConfidenceSuggestion: Story = {
+  args: {
+    suggestedReasons: [
+      {
+        reason: RejectionReason.ContactInformationViolation,
+        confidence: 'high',
+        source: 'İletişim Bilgisi Tespiti',
+      },
+    ],
+  },
+}
+
+/** Basarisiz kontrol yok, oneri yok -- bolum gorunmez. */
+export const NoSuggestions: Story = {
+  args: {
+    suggestedReasons: [],
+  },
+}
+
+/** Oneriye tiklandiginda gerekce secilmeli. */
+export const SuggestionSelection: Story = {
+  args: {
+    suggestedReasons: THREE_SUGGESTIONS,
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+
+    // Click the first suggestion card
+    const buttons = canvas.getAllByRole('button', { pressed: false })
+    // Find the suggestion button (not the toggle)
+    const suggestionButton = buttons.find((btn) =>
+      btn.textContent?.includes('Yanıltıcı veya Eksik Bilgi'),
+    )
+
+    if (suggestionButton) {
+      await userEvent.click(suggestionButton)
+
+      await expect(args.onValueChange).toHaveBeenCalledWith([
+        RejectionReason.MisleadingOrIncompleteInfo,
+      ])
+    }
+  },
+}
+
+/* ── Combined story: AutomatedChecksPanel + RejectionReasonPicker ──── */
+
+const kontrol = (
+  code: AutomatedCheckCode,
+  status: AutomatedCheckResultStatus,
+  message: string,
+  score?: number,
+): AutomatedCheckResult => ({
+  code,
+  status,
+  ...(score !== undefined && { score }),
+  message,
+  checkedAt: '2026-07-14T09:00:00+03:00',
+})
+
+const KARISIK_KONTROLLER: AutomatedCheckResult[] = [
+  kontrol(
+    AutomatedCheckCode.RequiredFields,
+    AutomatedCheckResultStatus.Failed,
+    'Brut metrekare girilmemiş.',
+  ),
+  kontrol(
+    AutomatedCheckCode.DuplicateContent,
+    AutomatedCheckResultStatus.Failed,
+    'Aynı gayrimenkule ait aktif bir ilan bulundu (1245789630).',
+    0.94,
+  ),
+  kontrol(
+    AutomatedCheckCode.PriceAnomaly,
+    AutomatedCheckResultStatus.Warning,
+    'Fiyat, benzer ilanların ortalamasının 3,4 katı.',
+    0.71,
+  ),
+  kontrol(
+    AutomatedCheckCode.ContactInfoDetection,
+    AutomatedCheckResultStatus.Passed,
+    'Açıklamada harici iletişim bilgisi bulunmadı.',
+  ),
+  kontrol(
+    AutomatedCheckCode.ImageQuality,
+    AutomatedCheckResultStatus.Passed,
+    'Fotoğrafların çözünürlüğü yeterli.',
+    0.9,
+  ),
+  kontrol(
+    AutomatedCheckCode.ImageSafety,
+    AutomatedCheckResultStatus.Passed,
+    'Görsellerde politika dışı içerik saptanmadı.',
+    0.97,
+  ),
+  kontrol(
+    AutomatedCheckCode.LocationConsistency,
+    AutomatedCheckResultStatus.Failed,
+    'Koordinat, girilen mahallenin 2,8 km dışında.',
+  ),
+  kontrol(
+    AutomatedCheckCode.FraudRisk,
+    AutomatedCheckResultStatus.Failed,
+    'Hesap yeni açılmış ve ilk ilan olağandışı yüksek fiyatlı.',
+    0.82,
+  ),
+]
+
+/**
+ * Birlesik gorunum: AutomatedChecksPanel sonuclari RejectionReasonPicker'a
+ * oneri olarak akar. `mapChecksToSuggestions` koprusu calisiyor.
+ */
+export const CombinedWithChecksPanel: Story = {
+  render: function Render(args) {
+    const [gerekceler, setGerekceler] = useState<RejectionReason[]>([])
+    const [not, setNot] = useState('')
+    const suggestions = mapChecksToSuggestions(KARISIK_KONTROLLER)
+
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+        <div>
+          <h3 style={{ marginBlockEnd: '0.75rem', fontSize: '0.875rem', opacity: 0.6 }}>
+            Otomatik Kontrol Sonuçları
+          </h3>
+          <AutomatedChecksPanel items={KARISIK_KONTROLLER} variant="list" />
+        </div>
+        <div>
+          <h3 style={{ marginBlockEnd: '0.75rem', fontSize: '0.875rem', opacity: 0.6 }}>
+            Red Gerekçesi Seçimi
+          </h3>
+          <RejectionReasonPicker
+            {...args}
+            value={gerekceler}
+            note={not}
+            suggestedReasons={suggestions}
+            onValueChange={setGerekceler}
+            onNoteChange={setNot}
+          />
+        </div>
+      </div>
+    )
+  },
 }

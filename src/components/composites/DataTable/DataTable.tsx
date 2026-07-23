@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { ArrowDown, ArrowUp, ChevronsUpDown, Columns3 } from 'lucide-react'
+import { useRef, useState, useCallback } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { ArrowDown, ArrowUp, ChevronsUpDown, Columns3, Download, Filter } from 'lucide-react'
 import { Checkbox } from '../../primitives/Checkbox'
-import { DropdownMenu, DropdownMenuCheckboxItem } from '../../primitives/DropdownMenu'
+import { DropdownMenu, DropdownMenuItem, DropdownMenuCheckboxItem } from '../../primitives/DropdownMenu'
 import { Input } from '../../primitives/Input'
 import { Skeleton } from '../../primitives/Skeleton'
 import { Spinner } from '../../primitives/Spinner'
@@ -58,6 +59,15 @@ export function DataTable<T extends { id: string }>({
   onColumnFiltersChange,
   onRowClick,
   renderMobileCard,
+  virtualize,
+  totalRowCount,
+  onSelectAllAcrossPages,
+  onClearSelection,
+  selectAllMode = 'page',
+  onExport,
+  exportable = false,
+  columnHeaderFilters,
+  onColumnHeaderFilterChange,
 }: DataTableProps<T>) {
   const anahtar = (row: T) => rowKey?.(row) ?? row.id
 
@@ -136,14 +146,50 @@ export function DataTable<T extends { id: string }>({
   const filtrelenebilirSutunVar = gorunurSutunlar.some((s) => s.filterable === true)
 
   /*
+    Sütun-başlık-içi filtre popover'ları (iStoc B2B tarzı). Her sütunun başlığında
+    huni ikonu gösterir; tıklayınca popover açılır. Filtre değerleri ayrı bir
+    `Record<string, unknown>` haritasında tutulur.
+  */
+  const baslikFiltreKontrollu = onColumnHeaderFilterChange !== undefined
+  const [yonetilenBaslikFiltreler, setYonetilenBaslikFiltreler] = useState<Record<string, unknown>>(
+    (columnHeaderFilters as Record<string, unknown>) ?? {},
+  )
+  const efektifBaslikFiltreler: Record<string, unknown> = baslikFiltreKontrollu
+    ? ((columnHeaderFilters as Record<string, unknown>) ?? {})
+    : yonetilenBaslikFiltreler
+
+  const baslikFiltreDegistir = (columnId: string, deger: unknown) => {
+    const sonraki = { ...efektifBaslikFiltreler }
+    if (deger === undefined || deger === null || deger === '') {
+      delete sonraki[columnId]
+    } else {
+      sonraki[columnId] = deger
+    }
+    if (baslikFiltreKontrollu) onColumnHeaderFilterChange?.(sonraki)
+    else setYonetilenBaslikFiltreler(sonraki)
+  }
+
+  const baslikFiltreTemizle = (columnId: string) => {
+    const sonraki = { ...efektifBaslikFiltreler }
+    delete sonraki[columnId]
+    if (baslikFiltreKontrollu) onColumnHeaderFilterChange?.(sonraki)
+    else setYonetilenBaslikFiltreler(sonraki)
+  }
+
+  // Açık popover'ı izle — bir seferde tek popover açık olabilir.
+  const [acikPopover, setAcikPopover] = useState<string | null>(null)
+
+  /*
     Araç çubuğu yalnız `toolbar` verilince çizilir (bugünkü tüketiciler
     etkilenmez). Veri olan dallarda (loading + tablo/kart) gösterilir; error/empty
     tam-blok durumlarında kontrol edilecek bir tablo yok, o yüzden gizli.
   */
-  const araclarVar = toolbar !== undefined
+  const disaAktarmaAcik = exportable || toolbar?.export === true
+  const secimVar = selectedIds.length > 0
+  const araclarVar = toolbar !== undefined || disaAktarmaAcik
   const aracCubugu = araclarVar ? (
     <div className={css.toolbar}>
-      {toolbar.density === true ? (
+      {toolbar?.density === true ? (
         <div className={css.segmented} role="group" aria-label="Satır yoğunluğu">
           <button
             type="button"
@@ -164,7 +210,7 @@ export function DataTable<T extends { id: string }>({
         </div>
       ) : null}
 
-      {toolbar.columns === true && hideableSutunlar.length > 0 ? (
+      {toolbar?.columns === true && hideableSutunlar.length > 0 ? (
         <DropdownMenu
           label="Sütunları göster veya gizle"
           align="end"
@@ -191,6 +237,35 @@ export function DataTable<T extends { id: string }>({
           })}
         </DropdownMenu>
       ) : null}
+
+      {disaAktarmaAcik && onExport !== undefined ? (
+        <DropdownMenu
+          label="Dışa aktar"
+          align="end"
+          trigger={
+            <span className={css.exportButton}>
+              <Download size={16} aria-hidden="true" className={css.toolbarIcon} /> Dışa aktar
+            </span>
+          }
+        >
+          <DropdownMenuItem onSelect={() => onExport('csv', false)}>
+            CSV olarak dışa aktar
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onExport('xlsx', false)}>
+            Excel olarak dışa aktar
+          </DropdownMenuItem>
+          {secimVar ? (
+            <>
+              <DropdownMenuItem onSelect={() => onExport('csv', true)}>
+                Seçilenleri CSV olarak dışa aktar
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onExport('xlsx', true)}>
+                Seçilenleri Excel olarak dışa aktar
+              </DropdownMenuItem>
+            </>
+          ) : null}
+        </DropdownMenu>
+      ) : null}
     </div>
   ) : null
 
@@ -204,6 +279,48 @@ export function DataTable<T extends { id: string }>({
   const satirSec = (id: string, secili: boolean) => {
     onSelectionChange?.(secili ? [...selectedIds, id] : selectedIds.filter((x) => x !== id))
   }
+
+  /*
+    Sayfa-otesi secim banner'i: yalniz `totalRowCount` verildiginde ve baslik
+    kutusuna basildiginda gorunur. Iki durumu var:
+    1. `selectAllMode === 'page'` + tum sayfa secili: "Bu sayfadaki N kayit
+       secildi. Tum X kaydi secmek icin tiklayin."
+    2. `selectAllMode === 'all'`: "Tum X kayit secildi. Secimi temizle."
+  */
+  const sayfaOtesiBannerGorunur =
+    selectable && totalRowCount !== undefined && totalRowCount > rows.length && tumuSecili
+
+  const secimBanner = sayfaOtesiBannerGorunur ? (
+    <div className={css.selectAllBanner} role="status">
+      {selectAllMode === 'all' ? (
+        <>
+          Tüm {totalRowCount.toLocaleString('tr-TR')} kayıt seçildi.{' '}
+          <button
+            type="button"
+            className={css.selectAllBannerLink}
+            onClick={() => {
+              onClearSelection?.()
+            }}
+          >
+            Seçimi temizle.
+          </button>
+        </>
+      ) : (
+        <>
+          Bu sayfadaki {rows.length.toLocaleString('tr-TR')} kayıt seçildi.{' '}
+          <button
+            type="button"
+            className={css.selectAllBannerLink}
+            onClick={() => {
+              onSelectAllAcrossPages?.()
+            }}
+          >
+            Tüm {totalRowCount.toLocaleString('tr-TR')} kaydı seç
+          </button>
+        </>
+      )}
+    </div>
+  ) : null
 
   const siralamayiDegistir = (sutun: ColumnDef<T>, shiftKey: boolean) => {
     if (sutun.sortable !== true) return
@@ -222,13 +339,44 @@ export function DataTable<T extends { id: string }>({
   }
 
   /*
-    Yönetilen boru hattı: `rows` → (yönetilen) filtre → (yönetilen) sıralama.
+    Yönetilen boru hattı: `rows` → toolbar filtre → başlık filtre → sıralama.
     Kontrollü modlarda ilgili adım atlanır (`rows` zaten süzülmüş/sıralı gelir).
   */
   const filtrelenmisRows = yonetilenFiltre ? filtreleRows(rows, efektifFiltreler, columns) : rows
+  const baslikFiltrelenmisRows = baslikFiltreleRows(filtrelenmisRows, efektifBaslikFiltreler, columns)
   const siralanmisRows = yonetilenSort
-    ? siralaRows(filtrelenmisRows, efektifKurallar, columns)
-    : filtrelenmisRows
+    ? siralaRows(baslikFiltrelenmisRows, efektifKurallar, columns)
+    : baslikFiltrelenmisRows
+
+  /*
+    Sanallaştırma: `virtualize` prop'una göre karar verilir.
+    - `true` / obje: açık.
+    - `false`: kapalı.
+    - `undefined`: satır sayısı > 100 ise otomatik açılır.
+    Kart modunda tablo satırları yine sanallaştırılabilir (tablo dalı ≥48rem'de
+    görünür); kart dalı hiç sanallaştırılmaz.
+  */
+  const virtualizeResolved =
+    virtualize === undefined
+      ? siralanmisRows.length > 100
+      : virtualize !== false
+  const virtualOverscan =
+    typeof virtualize === 'object' && virtualize !== null
+      ? (virtualize.overscan ?? 5)
+      : 5
+  const defaultRowHeight = density === 'compact' ? 36 : 48
+  const virtualEstimateSize =
+    typeof virtualize === 'object' && virtualize !== null
+      ? (virtualize.estimateSize ?? defaultRowHeight)
+      : defaultRowHeight
+
+  const scrollerRef = useRef<HTMLDivElement>(null)
+  const rowVirtualizer = useVirtualizer({
+    count: siralanmisRows.length,
+    getScrollElement: useCallback(() => scrollerRef.current, []),
+    estimateSize: useCallback(() => virtualEstimateSize, [virtualEstimateSize]),
+    overscan: virtualOverscan,
+  })
 
   const hucreIcerigi = (row: T, sutun: ColumnDef<T>) => {
     if (sutun.cell !== undefined) return sutun.cell(row)
@@ -354,120 +502,223 @@ export function DataTable<T extends { id: string }>({
 
   const kartModu = mobileMode === 'cards' && renderMobileCard !== undefined
 
-  const tablo = (
-    <div
-      className={
-        kartModu
-          ? `${css.wrapper({ visualStyle })} ${css.tableInCards}`
-          : css.wrapper({ visualStyle })
-      }
-    >
-      {/*
-        `tabIndex={0}`: tablo dar ekranda yatay kaydırılır. Seçilebilir veya
-        linkli tabloda kutular/linkler kabı klavyeye açıyordu, ama salt okunur
-        bir tabloda (PromotionFlagsPanel'in özet tablosu) içeride odaklanılacak
-        hiçbir şey yok ve sütunların yarısı fare olmadan görülemiyordu.
-        Gerekçenin uzunu Drawer.tsx'te.
-      */}
-      <div className={css.scroller} tabIndex={0}>
-        <table className={css.table}>
-          <thead className={css.thead({ sticky: stickyHeader })}>
-            <tr>
-              {selectable ? (
-                <th className={`${css.th({ density })} ${css.selectionCell}`}>
-                  {/*
-                    Etiket gizli: görünürse her satırda tekrar eder, yatay alan
-                    yer ve tabloyu okunmaz hale getirir. Ama kaldırılamaz —
-                    ekran okuyucu kullanıcısı kutunun neyi seçtiğini ondan öğrenir.
-                  */}
-                  <Checkbox
-                    label={`Tümünü seç (${rows.length} kayıt)`}
-                    hideLabel
-                    checked={tumuSecili}
-                    indeterminate={bazisiSecili}
-                    onCheckedChange={tumunuSec}
-                  />
-                </th>
-              ) : null}
+  /* ── Tek satır render fonksiyonu (hem normal hem sanal dal kullanır) ── */
+  const renderRow = (row: T, index: number) => {
+    const id = anahtar(row)
+    const secili = selectedIds.includes(id)
 
-              {gorunurSutunlar.map((sutun) => {
-                const kuralIndex = efektifKurallar.findIndex((k) => k.columnId === sutun.id)
-                const kural = kuralIndex >= 0 ? efektifKurallar[kuralIndex] : undefined
-                const sirali = kural !== undefined
-                const SiralamaIkonu = !sirali
-                  ? ChevronsUpDown
-                  : kural.direction === 'asc'
-                    ? ArrowUp
-                    : ArrowDown
-                // Öncelik rozeti yalnız birden çok kural varken anlamlı (1, 2…).
-                const siraNo = efektifKurallar.length > 1 && sirali ? kuralIndex + 1 : null
+    return (
+      <tr
+        key={id}
+        className={css.tr({ striped: visualStyle === 'striped' })}
+        data-selected={secili ? '' : undefined}
+        data-clickable={onRowClick !== undefined ? '' : undefined}
+        onClick={onRowClick !== undefined ? () => onRowClick(row) : undefined}
+      >
+        {selectable ? (
+          <td
+            className={`${css.td({ density })} ${css.selectionCell}`}
+            /* Seçim kutusuna tıklamak satır tıklamasını tetiklemesin. */
+            onClick={(event) => event.stopPropagation()}
+          >
+            {/*
+              Etiket satırı tanımlar, "Satırı seç" demez: ekran okuyucu
+              kullanıcısı 12 kez aynı metni duyarsa hangisini seçtiğini
+              anlamaz. Ayırt edici metin `rowLabel` ile verilir; yoksa
+              satır numarasına düşülür.
+            */}
+            <Checkbox
+              label={rowLabel?.(row) ?? `${index + 1}. satırı seç`}
+              hideLabel
+              checked={secili}
+              onCheckedChange={(next) => satirSec(id, next)}
+            />
+          </td>
+        ) : null}
 
-                return (
-                  <th
-                    key={sutun.id}
-                    className={css.th({ density, align: sutun.align ?? 'start' })}
-                    style={sutun.width !== undefined ? { width: sutun.width } : undefined}
-                    data-sorted={sirali ? '' : undefined}
-                    aria-sort={
-                      sirali ? (kural.direction === 'asc' ? 'ascending' : 'descending') : undefined
-                    }
-                  >
-                    {sutun.sortable === true ? (
-                      <button
-                        type="button"
-                        className={css.sortButton}
-                        onClick={(event) => siralamayiDegistir(sutun, event.shiftKey)}
-                      >
-                        {sutun.header}
-                        <SiralamaIkonu size={14} className={css.sortIcon} aria-hidden="true" />
-                        {siraNo !== null ? (
-                          <span className={css.sortOrder} aria-hidden="true">
-                            {siraNo}
-                          </span>
-                        ) : null}
-                      </button>
-                    ) : (
-                      sutun.header
-                    )}
-                  </th>
-                )
-              })}
-            </tr>
+        {gorunurSutunlar.map((sutun) => (
+          <td
+            key={sutun.id}
+            className={css.td({ density, align: sutun.align ?? 'start' })}
+          >
+            {hucreIcerigi(row, sutun)}
+          </td>
+        ))}
+      </tr>
+    )
+  }
 
-            {toolbar?.filters === true && filtrelenebilirSutunVar ? (
-              <tr className={css.filterRow}>
-                {selectable ? <td className={css.selectionCell} /> : null}
-                {gorunurSutunlar.map((sutun) => {
-                  const filtreLabel =
-                    typeof sutun.header === 'string' ? `${sutun.header} filtresi` : 'Sütun filtresi'
-                  const deger = efektifFiltreler[sutun.id] ?? ''
-                  return (
-                    <td key={sutun.id} className={css.filterCell}>
-                      {sutun.filterable === true ? (
-                        <Input
-                          size="sm"
-                          aria-label={filtreLabel}
-                          placeholder="Filtrele…"
-                          value={deger}
-                          onChange={(e) => filtreDegistir(sutun.id, e.target.value)}
-                        />
+  /* ── Thead (her iki dal da aynı) ── */
+  const theadIcerigi = (
+    <thead className={css.thead({ sticky: stickyHeader })}>
+      <tr>
+        {selectable ? (
+          <th className={`${css.th({ density })} ${css.selectionCell}`}>
+            {/*
+              Etiket gizli: görünürse her satırda tekrar eder, yatay alan
+              yer ve tabloyu okunmaz hale getirir. Ama kaldırılamaz —
+              ekran okuyucu kullanıcısı kutunun neyi seçtiğini ondan öğrenir.
+            */}
+            <Checkbox
+              label={`Tümünü seç (${rows.length} kayıt)`}
+              hideLabel
+              checked={tumuSecili}
+              indeterminate={bazisiSecili}
+              onCheckedChange={tumunuSec}
+            />
+          </th>
+        ) : null}
+
+        {gorunurSutunlar.map((sutun) => {
+          const kuralIndex = efektifKurallar.findIndex((k) => k.columnId === sutun.id)
+          const kural = kuralIndex >= 0 ? efektifKurallar[kuralIndex] : undefined
+          const sirali = kural !== undefined
+          const SiralamaIkonu = !sirali
+            ? ChevronsUpDown
+            : kural.direction === 'asc'
+              ? ArrowUp
+              : ArrowDown
+          // Öncelik rozeti yalnız birden çok kural varken anlamlı (1, 2…).
+          const siraNo = efektifKurallar.length > 1 && sirali ? kuralIndex + 1 : null
+
+          // Sütun-başlık-içi filtre ikonu durumu.
+          const sutunFiltrelenebilir = sutun.columnFilterable === true
+          const sutunFiltreAktif = sutunFiltrelenebilir && efektifBaslikFiltreler[sutun.id] !== undefined
+          const popoverAcik = acikPopover === sutun.id
+
+          const sortVeyaFilterVar = sutun.sortable === true || sutunFiltrelenebilir
+
+          return (
+            <th
+              key={sutun.id}
+              className={css.th({ density, align: sutun.align ?? 'start' })}
+              style={{
+                ...(sutun.width !== undefined ? { width: sutun.width } : {}),
+                // Popover konumlandırması için relative gerekir.
+                ...(sutunFiltrelenebilir ? { position: 'relative' as const } : {}),
+              }}
+              data-sorted={sirali ? '' : undefined}
+              aria-sort={
+                sirali ? (kural.direction === 'asc' ? 'ascending' : 'descending') : undefined
+              }
+            >
+              {sortVeyaFilterVar ? (
+                <span className={css.headerContent}>
+                  {sutun.sortable === true ? (
+                    <button
+                      type="button"
+                      className={css.sortButton}
+                      onClick={(event) => siralamayiDegistir(sutun, event.shiftKey)}
+                    >
+                      {sutun.header}
+                      <SiralamaIkonu size={14} className={css.sortIcon} aria-hidden="true" />
+                      {siraNo !== null ? (
+                        <span className={css.sortOrder} aria-hidden="true">
+                          {siraNo}
+                        </span>
                       ) : null}
-                    </td>
-                  )
-                })}
-              </tr>
-            ) : null}
-          </thead>
+                    </button>
+                  ) : (
+                    sutun.header
+                  )}
 
-          <tbody>
-            {siralanmisRows.map((row, index) => {
+                  {sutunFiltrelenebilir ? (
+                    <button
+                      type="button"
+                      className={css.filterButton({ active: sutunFiltreAktif })}
+                      aria-label={`${typeof sutun.header === 'string' ? sutun.header : sutun.id} filtrele`}
+                      aria-expanded={popoverAcik}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setAcikPopover(popoverAcik ? null : sutun.id)
+                      }}
+                    >
+                      {sutunFiltreAktif ? (
+                        <Filter size={13} aria-hidden="true" fill="currentColor" />
+                      ) : (
+                        <Filter size={13} aria-hidden="true" />
+                      )}
+                    </button>
+                  ) : null}
+
+                  {popoverAcik ? (
+                    <ColumnFilterPopover
+                      columnId={sutun.id}
+                      columnHeader={sutun.header}
+                      filterType={sutun.columnFilterType ?? 'text'}
+                      {...(sutun.columnFilterOptions !== undefined && { filterOptions: sutun.columnFilterOptions })}
+                      currentValue={efektifBaslikFiltreler[sutun.id]}
+                      onApply={baslikFiltreDegistir}
+                      onClear={baslikFiltreTemizle}
+                      onClose={() => setAcikPopover(null)}
+                    />
+                  ) : null}
+                </span>
+              ) : (
+                sutun.header
+              )}
+            </th>
+          )
+        })}
+      </tr>
+
+      {toolbar?.filters === true && filtrelenebilirSutunVar ? (
+        <tr className={css.filterRow}>
+          {selectable ? <td className={css.selectionCell} /> : null}
+          {gorunurSutunlar.map((sutun) => {
+            const filtreLabel =
+              typeof sutun.header === 'string' ? `${sutun.header} filtresi` : 'Sütun filtresi'
+            const deger = efektifFiltreler[sutun.id] ?? ''
+            return (
+              <td key={sutun.id} className={css.filterCell}>
+                {sutun.filterable === true ? (
+                  <Input
+                    size="sm"
+                    aria-label={filtreLabel}
+                    placeholder="Filtrele…"
+                    value={deger}
+                    onChange={(e) => filtreDegistir(sutun.id, e.target.value)}
+                  />
+                ) : null}
+              </td>
+            )
+          })}
+        </tr>
+      ) : null}
+    </thead>
+  )
+
+  const wrapperClass = kartModu
+    ? `${css.wrapper({ visualStyle })} ${css.tableInCards}`
+    : css.wrapper({ visualStyle })
+
+  const tablo = virtualizeResolved ? (
+    <div className={wrapperClass}>
+      {/*
+        Sanallaştırılmış dal: kaydırma kabı `ref` ile virtualizer'a bağlı.
+        `tabIndex={0}` hem yatay hem dikey kaydırmayı klavyeyle açar.
+        `maxHeight` varsayılan 80vh; tüketici kendi sarmalayıcısıyla kısıtlayabilir.
+      */}
+      <div className={css.virtualScroller} ref={scrollerRef} tabIndex={0}>
+        <table className={css.table}>
+          {theadIcerigi}
+
+          <tbody
+            className={css.virtualTbody}
+            style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+              const row = siralanmisRows[virtualItem.index]!
               const id = anahtar(row)
               const secili = selectedIds.includes(id)
 
               return (
                 <tr
                   key={id}
-                  className={css.tr({ striped: visualStyle === 'striped' })}
+                  ref={rowVirtualizer.measureElement}
+                  data-index={virtualItem.index}
+                  className={`${css.tr({ striped: visualStyle === 'striped' })} ${css.virtualRow}`}
+                  style={{ transform: `translateY(${virtualItem.start}px)` }}
                   data-selected={secili ? '' : undefined}
                   data-clickable={onRowClick !== undefined ? '' : undefined}
                   onClick={onRowClick !== undefined ? () => onRowClick(row) : undefined}
@@ -475,17 +726,10 @@ export function DataTable<T extends { id: string }>({
                   {selectable ? (
                     <td
                       className={`${css.td({ density })} ${css.selectionCell}`}
-                      /* Seçim kutusuna tıklamak satır tıklamasını tetiklemesin. */
                       onClick={(event) => event.stopPropagation()}
                     >
-                      {/*
-                        Etiket satırı tanımlar, "Satırı seç" demez: ekran okuyucu
-                        kullanıcısı 12 kez aynı metni duyarsa hangisini seçtiğini
-                        anlamaz. Ayırt edici metin `rowLabel` ile verilir; yoksa
-                        satır numarasına düşülür.
-                      */}
                       <Checkbox
-                        label={rowLabel?.(row) ?? `${index + 1}. satırı seç`}
+                        label={rowLabel?.(row) ?? `${virtualItem.index + 1}. satırı seç`}
                         hideLabel
                         checked={secili}
                         onCheckedChange={(next) => satirSec(id, next)}
@@ -508,12 +752,32 @@ export function DataTable<T extends { id: string }>({
         </table>
       </div>
     </div>
+  ) : (
+    <div className={wrapperClass}>
+      {/*
+        `tabIndex={0}`: tablo dar ekranda yatay kaydırılır. Seçilebilir veya
+        linkli tabloda kutular/linkler kabı klavyeye açıyordu, ama salt okunur
+        bir tabloda (PromotionFlagsPanel'in özet tablosu) içeride odaklanılacak
+        hiçbir şey yok ve sütunların yarısı fare olmadan görülemiyordu.
+        Gerekçenin uzunu Drawer.tsx'te.
+      */}
+      <div className={css.scroller} tabIndex={0}>
+        <table className={css.table}>
+          {theadIcerigi}
+
+          <tbody>
+            {siralanmisRows.map((row, index) => renderRow(row, index))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   )
 
   if (mobileMode === 'cards' && renderMobileCard !== undefined) {
     return (
       <>
         {aracCubugu}
+        {secimBanner}
         <div className={css.cards}>
           {siralanmisRows.map((row) => {
             const id = anahtar(row)
@@ -533,7 +797,240 @@ export function DataTable<T extends { id: string }>({
   return (
     <>
       {aracCubugu}
+      {secimBanner}
       {tablo}
+    </>
+  )
+}
+
+/* ── Sütun filtre popover'ı (component dışında, saf) ── */
+
+interface ColumnFilterPopoverProps {
+  columnId: string
+  columnHeader: React.ReactNode
+  filterType: 'text' | 'select' | 'number' | 'date'
+  filterOptions?: { value: string; label: string }[]
+  currentValue: unknown
+  onApply: (columnId: string, value: unknown) => void
+  onClear: (columnId: string) => void
+  onClose: () => void
+}
+
+/**
+ * Sütun başlığının altında açılan filtre popover'ı. Tipine göre farklı
+ * kontroller sunar: metin, seçim, sayı aralığı veya tarih aralığı.
+ */
+function ColumnFilterPopover({
+  columnId,
+  columnHeader,
+  filterType,
+  filterOptions,
+  currentValue,
+  onApply,
+  onClear,
+  onClose,
+}: ColumnFilterPopoverProps) {
+  const label = typeof columnHeader === 'string' ? columnHeader : columnId
+
+  // Yerel geçici durum — popover açıkken değişiklikler burada tutulur, "Uygula"yla gönderilir.
+  const [localText, setLocalText] = useState<string>(
+    typeof currentValue === 'string' ? currentValue : '',
+  )
+  const [localSelect, setLocalSelect] = useState<string>(
+    typeof currentValue === 'string' ? currentValue : '',
+  )
+  const [localMin, setLocalMin] = useState<string>(
+    currentValue !== null && typeof currentValue === 'object' && 'min' in (currentValue as Record<string, unknown>)
+      ? String((currentValue as Record<string, unknown>).min)
+      : '',
+  )
+  const [localMax, setLocalMax] = useState<string>(
+    currentValue !== null && typeof currentValue === 'object' && 'max' in (currentValue as Record<string, unknown>)
+      ? String((currentValue as Record<string, unknown>).max)
+      : '',
+  )
+
+  const handleApply = () => {
+    switch (filterType) {
+      case 'text':
+        onApply(columnId, localText || undefined)
+        break
+      case 'select':
+        onApply(columnId, localSelect || undefined)
+        break
+      case 'number': {
+        const numDeger: Record<string, number> = {}
+        if (localMin !== '') numDeger.min = Number(localMin)
+        if (localMax !== '') numDeger.max = Number(localMax)
+        onApply(columnId, Object.keys(numDeger).length > 0 ? numDeger : undefined)
+        break
+      }
+      case 'date':
+        // Tarih için şimdilik metin tabanlı basit giriş.
+        onApply(columnId, localText || undefined)
+        break
+    }
+    onClose()
+  }
+
+  const handleClear = () => {
+    onClear(columnId)
+    onClose()
+  }
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation()
+      onClose()
+    }
+    if (event.key === 'Enter') {
+      event.stopPropagation()
+      handleApply()
+    }
+  }
+
+  return (
+    <>
+      {/* Arka plan tıklaması ile kapatma */}
+      <div className={css.popoverBackdrop} onClick={onClose} />
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
+      <div
+        className={css.columnFilterPopover}
+        role="dialog"
+        aria-label={`${label} filtresi`}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
+      >
+        <span className={css.popoverLabel}>{label}</span>
+
+        {filterType === 'text' && (
+          <div className={css.popoverField}>
+            <input
+              type="text"
+              value={localText}
+              onChange={(e) => setLocalText(e.target.value)}
+              placeholder="Ara..."
+              autoFocus
+              style={{
+                width: '100%',
+                padding: '0.375rem 0.5rem',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '0.375rem',
+                color: 'inherit',
+                fontSize: 'inherit',
+                outline: 'none',
+              }}
+            />
+          </div>
+        )}
+
+        {filterType === 'select' && filterOptions !== undefined && (
+          <div className={css.popoverField}>
+            <select
+              value={localSelect}
+              onChange={(e) => setLocalSelect(e.target.value)}
+              autoFocus
+              style={{
+                width: '100%',
+                padding: '0.375rem 0.5rem',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '0.375rem',
+                color: 'inherit',
+                fontSize: 'inherit',
+                outline: 'none',
+              }}
+            >
+              <option value="">Tumu</option>
+              {filterOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {filterType === 'number' && (
+          <div className={css.popoverRow}>
+            <input
+              type="number"
+              value={localMin}
+              onChange={(e) => setLocalMin(e.target.value)}
+              placeholder="En az"
+              autoFocus
+              style={{
+                flex: 1,
+                padding: '0.375rem 0.5rem',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '0.375rem',
+                color: 'inherit',
+                fontSize: 'inherit',
+                outline: 'none',
+                minWidth: 0,
+              }}
+            />
+            <span style={{ color: 'rgba(255,255,255,0.4)' }}>—</span>
+            <input
+              type="number"
+              value={localMax}
+              onChange={(e) => setLocalMax(e.target.value)}
+              placeholder="En cok"
+              style={{
+                flex: 1,
+                padding: '0.375rem 0.5rem',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '0.375rem',
+                color: 'inherit',
+                fontSize: 'inherit',
+                outline: 'none',
+                minWidth: 0,
+              }}
+            />
+          </div>
+        )}
+
+        {filterType === 'date' && (
+          <div className={css.popoverField}>
+            <input
+              type="date"
+              value={localText}
+              onChange={(e) => setLocalText(e.target.value)}
+              autoFocus
+              style={{
+                width: '100%',
+                padding: '0.375rem 0.5rem',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '0.375rem',
+                color: 'inherit',
+                fontSize: 'inherit',
+                outline: 'none',
+              }}
+            />
+          </div>
+        )}
+
+        <div className={css.popoverActions}>
+          <button
+            type="button"
+            className={css.popoverButton({ variant: 'ghost' })}
+            onClick={handleClear}
+          >
+            Temizle
+          </button>
+          <button
+            type="button"
+            className={css.popoverButton({ variant: 'primary' })}
+            onClick={handleApply}
+          >
+            Uygula
+          </button>
+        </div>
+      </div>
     </>
   )
 }
@@ -634,4 +1131,74 @@ function siralaRows<T extends { id: string }>(
     }
     return 0
   })
+}
+
+/**
+ * Sütun başlık filtresi için ham değer çıkarır.
+ * Önce filterAccessor, sonra accessor, yoksa row[columnId] dener.
+ */
+function baslikFiltreHamDeger<T extends { id: string }>(sutun: ColumnDef<T>, row: T): string {
+  if (sutun.filterAccessor !== undefined) return sutun.filterAccessor(row)
+  if (sutun.accessor !== undefined) {
+    const deger = row[sutun.accessor]
+    return deger === null || deger === undefined ? '' : String(deger)
+  }
+  // Son çare: row'da column id ile eşleşen alan
+  const rowObj = row as Record<string, unknown>
+  const val = rowObj[sutun.id]
+  if (val !== undefined && val !== null) return String(val)
+  return ''
+}
+
+/**
+ * Sütun başlık filtreleri uygular.
+ * - text: alt dize eşleşmesi (büyük/küçük harf duyarsız)
+ * - select: tam değer eşleşmesi
+ * - number: { min?, max? } aralık kontrolü
+ */
+function baslikFiltreleRows<T extends { id: string }>(
+  rows: T[],
+  filtreler: Record<string, unknown>,
+  columns: ColumnDef<T>[],
+): T[] {
+  const aktif = Object.entries(filtreler).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  if (aktif.length === 0) return rows
+
+  const sutunHaritasi = new Map(columns.map((c) => [c.id, c]))
+
+  return rows.filter((row) =>
+    aktif.every(([id, deger]) => {
+      const sutun = sutunHaritasi.get(id)
+      if (sutun === undefined) return true
+
+      const filterType = sutun.columnFilterType ?? 'text'
+
+      if (filterType === 'number') {
+        // deger: { min?: number; max?: number }
+        const range = deger as { min?: number; max?: number }
+        const accessor = sutun.sortAccessor ?? sutun.accessor
+        const sayi = typeof accessor === 'function'
+          ? Number(accessor(row))
+          : typeof accessor === 'string'
+            ? Number((row as Record<string, unknown>)[accessor])
+            : 0
+        if (range.min !== undefined && sayi < range.min) return false
+        if (range.max !== undefined && sayi > range.max) return false
+        return true
+      }
+
+      if (filterType === 'select') {
+        // Select: row'un ham alanını kontrol et (accessor, filterAccessor, veya row[columnId])
+        const ham = baslikFiltreHamDeger(sutun, row)
+        return ham.toLocaleLowerCase('tr').includes(String(deger).toLocaleLowerCase('tr'))
+      }
+
+      // text (default)
+      const metin = baslikFiltreHamDeger(sutun, row)
+      if (metin !== '') return metin.toLocaleLowerCase('tr').includes(String(deger).toLocaleLowerCase('tr'))
+      // Fallback: filtreDegeri
+      const fallback = filtreDegeri(sutun, row)
+      return fallback.toLocaleLowerCase('tr').includes(String(deger).toLocaleLowerCase('tr'))
+    }),
+  )
 }

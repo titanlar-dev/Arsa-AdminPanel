@@ -376,6 +376,86 @@ export const RejectRequiresReason: Story = {
   },
 }
 
+/* ── Toplu moderasyon story'leri ──────────────────────────────────────── */
+
+/** Bekleyen fotoğraflarla toplu moderasyon araç çubuğu. */
+export const BatchModeration: Story = {
+  args: {
+    allowModeration: true,
+    photos: FOTOGRAFLAR,
+    onPhotoApprove: fn(),
+    onPhotoReject: fn(),
+    onBatchApprove: fn(),
+    onBatchReject: fn(),
+  },
+}
+
+/** Fotoğraf seçimi ve seçili fotoğraflar üzerinde toplu işlem. */
+export const SelectAndModerate: Story = {
+  args: {
+    allowModeration: true,
+    photos: FOTOGRAFLAR,
+    onPhotoApprove: fn(),
+    onPhotoReject: fn(),
+    onBatchApprove: fn(),
+    onBatchReject: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Checkbox'larin gorundugunu dogrula
+    const checkboxes = canvas.getAllByRole('checkbox')
+    await expect(checkboxes.length).toBeGreaterThan(0)
+
+    // Ilk fotoğrafi sec
+    await userEvent.click(checkboxes[0] as HTMLElement)
+
+    // "1 fotograf secili" metninin gorundugunu dogrula
+    await expect(canvas.getByText(/1 fotoğraf seçili/)).toBeInTheDocument()
+
+    // "Secilenleri onayla" butonunun gorundugunu dogrula
+    await expect(canvas.getByRole('button', { name: /Seçilenleri onayla/ })).toBeInTheDocument()
+  },
+}
+
+/** Tum fotoğraflar onaylanmis: toplu butonlar devre disi. */
+export const AllApproved: Story = {
+  args: {
+    allowModeration: true,
+    photos: FOTOGRAFLAR.map((p) => ({
+      ...p,
+      moderationStatus: AssetModerationStatus.Approved,
+    })),
+    onPhotoApprove: fn(),
+    onPhotoReject: fn(),
+    onBatchApprove: fn(),
+    onBatchReject: fn(),
+  },
+}
+
+/** Toplu onay akisi: "Tumunu onayla" tiklayinca callback cagirilir. */
+export const BatchApproveFlow: Story = {
+  args: {
+    allowModeration: true,
+    photos: FOTOGRAFLAR,
+    onPhotoApprove: fn(),
+    onPhotoReject: fn(),
+    onBatchApprove: fn(),
+    onBatchReject: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+
+    const approveBtn = canvas.getByRole('button', { name: /Tümünü onayla/ })
+    await expect(approveBtn).toBeEnabled()
+
+    await userEvent.click(approveBtn)
+
+    // Bekleyen fotograflarin id'leriyle cagirilmali
+    await expect(args.onBatchApprove).toHaveBeenCalledWith(['photo-3', 'photo-4', 'photo-6'])
+  },
+}
+
 export const VariantsComparison: Story = {
   args: { allowModeration: true, onPhotoApprove: fn(), onPhotoReject: fn() },
   render: (args) => (

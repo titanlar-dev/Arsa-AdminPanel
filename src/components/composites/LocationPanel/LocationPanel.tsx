@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Eye, EyeOff, MapPin, MapPinOff } from 'lucide-react'
+import { Eye, EyeOff, ExternalLink, MapPin, MapPinOff } from 'lucide-react'
 import type { Coordinates } from '../../../types/domain'
 import { Badge } from '../../primitives/Badge'
 import { EmptyState } from '../EmptyState'
@@ -12,6 +12,152 @@ import * as css from './LocationPanel.css'
  * verinin taşımadığı bir kesinlik iddia eder.
  */
 const KOORDINAT_BASAMAK = 6
+
+/* ------------------------------------------------------------------ */
+/*  Slippy-map math: lat/lng -> tile x/y at a given zoom level        */
+/*  https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames          */
+/* ------------------------------------------------------------------ */
+
+/** Convert latitude/longitude to OSM tile coordinates at the given zoom. */
+function latLngToTile(lat: number, lng: number, zoom: number): { x: number; y: number } {
+  const n = 2 ** zoom
+  const x = Math.floor(((lng + 180) / 360) * n)
+  const latRad = (lat * Math.PI) / 180
+  const y = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n)
+  return { x, y }
+}
+
+/** Build an OSM tile URL. */
+function tileUrl(z: number, x: number, y: number): string {
+  return `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+}
+
+/**
+ * Calculate the fractional tile position so we know where the pin should sit
+ * within the tile grid. Returns values in [0, 1) for each axis.
+ */
+function fractionalTilePosition(
+  lat: number,
+  lng: number,
+  zoom: number,
+): { fracX: number; fracY: number } {
+  const n = 2 ** zoom
+  const fracX = (((lng + 180) / 360) * n) % 1
+  const latRad = (lat * Math.PI) / 180
+  const fracY = (((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n) % 1
+  return { fracX, fracY }
+}
+
+/* ------------------------------------------------------------------ */
+/*  MapPreview: static map image from OSM tiles                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Renders a 2x2 tile grid (512x512 CSS pixels) centered on a coordinate,
+ * with a red CSS pin marker at the exact location. When `concealed` is true
+ * the tiles are blurred and a "Konum gizli" overlay is shown instead of a pin.
+ */
+function MapPreview({
+  coordinates,
+  zoom,
+  concealed,
+  neighborhoodLabel,
+}: {
+  coordinates: Coordinates
+  zoom: number
+  concealed: boolean
+  neighborhoodLabel: string
+}) {
+  const { latitude: lat, longitude: lng } = coordinates
+  const center = latLngToTile(lat, lng, zoom)
+  const frac = fractionalTilePosition(lat, lng, zoom)
+
+  /*
+   * 2x2 grid: the center tile plus its three neighbours, arranged so that
+   * the coordinate point lands somewhere in the middle of the grid.
+   * We pick offsets based on which quadrant the fractional position falls in.
+   */
+  const offsetX = frac.fracX >= 0.5 ? 0 : -1
+  const offsetY = frac.fracY >= 0.5 ? 0 : -1
+
+  const tiles: Array<{ x: number; y: number; gridCol: number; gridRow: number }> = []
+  for (let dy = 0; dy < 2; dy++) {
+    for (let dx = 0; dx < 2; dx++) {
+      tiles.push({
+        x: center.x + offsetX + dx,
+        y: center.y + offsetY + dy,
+        gridCol: dx + 1,
+        gridRow: dy + 1,
+      })
+    }
+  }
+
+  /*
+   * Pin position: calculate where within the 2x2 grid the actual
+   * coordinate falls, expressed as a fraction of the total grid width/height.
+   */
+  const pinCol0 = frac.fracX >= 0.5 ? frac.fracX : 1 + frac.fracX
+  const pinRow0 = frac.fracY >= 0.5 ? frac.fracY : 1 + frac.fracY
+  const pinLeft = `${(pinCol0 / 2) * 100}%`
+  const pinTop = `${(pinRow0 / 2) * 100}%`
+
+  const osmUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=${zoom}/${lat}/${lng}`
+
+  return (
+    <div
+      className={css.mapPreviewRoot}
+      role="img"
+      aria-label={concealed ? `Harita onizlemesi: konum gizli` : `Harita onizlemesi: ${lat}, ${lng}`}
+    >
+      <div className={concealed ? css.mapTileGridConcealed : css.mapTileGrid}>
+        {tiles.map((t) => (
+          <img
+            key={`${t.x}-${t.y}`}
+            src={tileUrl(zoom, t.x, t.y)}
+            alt=""
+            width={256}
+            height={256}
+            loading="lazy"
+            draggable={false}
+            style={{
+              gridColumn: t.gridCol,
+              gridRow: t.gridRow,
+              display: 'block',
+              width: '100%',
+              height: '100%',
+            }}
+          />
+        ))}
+
+        {!concealed && (
+          <span
+            className={css.mapPin}
+            style={{ left: pinLeft, top: pinTop }}
+            aria-hidden="true"
+          />
+        )}
+      </div>
+
+      {concealed && (
+        <div className={css.mapConcealedOverlay}>
+          <MapPinOff size={24} aria-hidden="true" />
+          <span>Konum gizli</span>
+          <span className={css.mapConcealedSub}>{neighborhoodLabel}</span>
+        </div>
+      )}
+
+      <a
+        href={osmUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={css.mapLink}
+      >
+        <ExternalLink size={14} aria-hidden="true" />
+        Haritada gor
+      </a>
+    </div>
+  )
+}
 
 /**
  * Koordinat **`Intl`'den geçmez.**
@@ -154,7 +300,15 @@ export function LocationPanel({
   listing,
   variant = 'summary',
   revealExactLocation = false,
-}: LocationPanelProps) {
+  showMap,
+  mapZoom = 15,
+}: LocationPanelProps & {
+  /** Show the static map preview. Defaults to `true` when `variant` is `'mapSplit'`. */
+  showMap?: boolean
+  /** OSM zoom level for the map preview tile. @default 15 */
+  mapZoom?: number
+}) {
+  const mapVisible = showMap ?? variant === 'mapSplit'
   const konum = listing.location
   const koordinat = konum.coordinates
   const acik = revealExactLocation
@@ -264,15 +418,19 @@ export function LocationPanel({
               description="İlana harita üzerinde nokta işaretlenmemiş. Konum tutarlılığı otomatik kontrolü bu ilanda çalışamaz; adres alanları el ile doğrulanmalı."
               illustration={<MapPinOff size={24} />}
             />
+          ) : mapVisible ? (
+            <MapPreview
+              coordinates={koordinat}
+              zoom={mapZoom}
+              concealed={!acik}
+              neighborhoodLabel={`${konum.neighborhoodName} Mahallesi, ${konum.districtName}`}
+            />
           ) : acik ? (
             <>
               <span className={css.mapIcon} aria-hidden="true">
                 <MapPin size={28} />
               </span>
               <p className={css.mapCoords}>{formatKoordinat(koordinat)}</p>
-              <p className={css.mapNote}>
-                Harita sağlayıcısı bağlanmadı; karo yerine koordinat metin olarak yazılıyor.
-              </p>
             </>
           ) : (
             <>

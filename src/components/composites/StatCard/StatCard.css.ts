@@ -217,6 +217,20 @@ export const description = style({
  * erişilebilirlik hesabından siler ve metin duyurulmaz (bkz. Button'ın
  * `loading` regresyonu).
  */
+/**
+ * Sparkline kapsayici. Kartın altına oturur; `trend` varyantında trend
+ * metninin altına, digerlerde kartın en altına yerlesir.
+ */
+export const sparklineWrapper = style({
+  display: 'flex',
+  alignItems: 'center',
+  /**
+   * Sparkline dekoratiftir — trendi gorsel olarak destekler. Kartin
+   * iceriginden optik olarak ayirmak icin kucuk bir ust bosluk yeterli.
+   */
+  paddingBlockStart: vars.space[1],
+})
+
 export const visuallyHidden = style({
   position: 'absolute',
   width: '1px',

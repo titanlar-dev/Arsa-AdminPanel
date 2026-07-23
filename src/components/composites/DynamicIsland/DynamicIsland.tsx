@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Dialog } from '@base-ui/react/dialog'
-import { ChevronRight, Search, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Clock, History, Search, Star, X } from 'lucide-react'
 import type { DynamicIslandProps } from '../../../types/component-props'
 import * as css from './DynamicIsland.css'
 
@@ -24,6 +24,8 @@ import * as css from './DynamicIsland.css'
 export function DynamicIsland({
   items,
   commands = [],
+  recentItems = [],
+  recentCommands = [],
   activeItemId,
   brandName = 'MetaPanel',
   brandBadge,
@@ -37,8 +39,13 @@ export function DynamicIsland({
   const acik = kontrollu ? openProp : dahiliAcik
   const [aramaModu, setAramaModu] = useState(false)
   const [sorgu, setSorgu] = useState('')
-  const [hovered, setHovered] = useState(false)
+  const [recentItemsOpen, setRecentItemsOpen] = useState(true)
+  const [recentCommandsOpen, setRecentCommandsOpen] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Sik kullanilan kimlikler (hem recent hem normal listede olanlar)
+  const recentItemIds = new Set(recentItems.map((i) => i.id))
+  const recentCommandIds = new Set(recentCommands.map((c) => c.id))
 
   const aktif = items.find((i) => i.id === activeItemId) ?? items[0]
 
@@ -73,6 +80,12 @@ export function DynamicIsland({
   const filtreliKomut = sorgu
     ? commands.filter((c) => c.label.toLocaleLowerCase('tr').includes(kucukSorgu))
     : commands
+  const filtreliRecentItems = sorgu
+    ? recentItems.filter((i) => i.label.toLocaleLowerCase('tr').includes(kucukSorgu))
+    : recentItems
+  const filtreliRecentCommands = sorgu
+    ? recentCommands.filter((c) => c.label.toLocaleLowerCase('tr').includes(kucukSorgu))
+    : recentCommands
 
   const gezin = (item: (typeof items)[number]) => {
     onNavigate?.(item)
@@ -91,11 +104,7 @@ export function DynamicIsland({
   return (
     <>
       {/* Daraltılmış hap — Dialog dışında, her zaman DOM'da; açıkken görsel olarak çekilir. */}
-      <div
-        className={css.pillWrapper}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
+      <div className={css.pillWrapper}>
         <button
           type="button"
           className={css.trigger({ open: acik })}
@@ -114,41 +123,29 @@ export function DynamicIsland({
             ) : null}
             <span className={css.currentLabel}>{aktif?.label}</span>
           </span>
-          <span className={css.kbdHint}>
-            <kbd className={css.kbd}>⌘K</kbd>
-          </span>
-        </button>
-
-        {/* Mini-nav: hap'ın KARDEŞİ (iç içe etkileşim yok), hover'da açılır. */}
-        {hovered && !acik ? (
-          <div className={css.miniNav}>
-            <div className={css.miniDivider} />
+          {/* Hover'da genişleyen inline nav ikonları */}
+          <span className={css.inlineNav} aria-hidden="true">
+            <span className={css.miniDivider} />
             {items.slice(0, 7).map((item) => (
-              <a
+              <span
                 key={item.id}
-                href={item.href ?? '#'}
-                onClick={(e) => {
-                  e.preventDefault()
-                  gezin(item)
-                }}
                 className={css.miniDot({ active: item.id === aktif?.id })}
                 title={item.label}
               >
                 <item.icon
                   size={12}
-                  aria-hidden="true"
                   {...(item.color !== undefined && { style: { color: item.color } })}
                 />
-                <span className={css.visuallyHidden}>{item.label}</span>
-              </a>
+              </span>
             ))}
             {items.length > 7 ? (
-              <div className={css.miniMore} aria-hidden="true">
-                +{items.length - 7}
-              </div>
+              <span className={css.miniMore}>+{items.length - 7}</span>
             ) : null}
-          </div>
-        ) : null}
+          </span>
+          <span className={css.kbdHint}>
+            <kbd className={css.kbd}>⌘K</kbd>
+          </span>
+        </button>
       </div>
 
       <Dialog.Root open={acik} onOpenChange={(next: boolean) => acikDegistir(next)}>
@@ -199,6 +196,59 @@ export function DynamicIsland({
               </div>
             </div>
 
+            {/* Son Ziyaret Edilenler */}
+            {filtreliRecentItems.length > 0 ? (
+              <div className={css.recentSection}>
+                <button
+                  type="button"
+                  className={css.recentSectionHeader}
+                  onClick={() => setRecentItemsOpen((v) => !v)}
+                  aria-expanded={recentItemsOpen}
+                >
+                  <Clock size={12} aria-hidden="true" className={css.recentSectionIcon} />
+                  <span className={css.recentSectionTitle}>Son Ziyaret Edilenler</span>
+                  <ChevronDown
+                    size={10}
+                    aria-hidden="true"
+                    className={`${css.recentSectionChevron}${recentItemsOpen ? '' : ` ${css.recentSectionChevronCollapsed}`}`}
+                  />
+                </button>
+                {recentItemsOpen
+                  ? filtreliRecentItems.map((item) => {
+                      const isFrequent = items.some((n) => n.id === item.id)
+                      return (
+                        <a
+                          key={`recent-${item.id}`}
+                          href={item.href ?? '#'}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            gezin(item)
+                          }}
+                          className={css.recentItem}
+                        >
+                          <span className={css.recentItemIcon}>
+                            <item.icon
+                              size={14}
+                              aria-hidden="true"
+                              {...(item.color !== undefined && { style: { color: item.color } })}
+                            />
+                          </span>
+                          <span className={css.recentItemContent}>
+                            <span className={css.recentItemLabel}>{item.label}</span>
+                            {isFrequent ? (
+                              <span className={css.frequentBadge} title="Sik kullanilan">
+                                <Star size={10} aria-hidden="true" />
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className={css.recentTimestamp}>(az once)</span>
+                        </a>
+                      )
+                    })
+                  : null}
+              </div>
+            ) : null}
+
             {/* Navigasyon grid'i */}
             <div className={css.section}>
               <p className={css.sectionLabel}>Navigasyon</p>
@@ -206,6 +256,7 @@ export function DynamicIsland({
                 <div className={css.navGrid}>
                   {filtreliNav.map((item) => {
                     const isActive = item.id === aktif?.id
+                    const isFrequent = recentItemIds.has(item.id)
                     return (
                       <a
                         key={item.id}
@@ -223,7 +274,14 @@ export function DynamicIsland({
                             {...(item.color !== undefined && { style: { color: item.color } })}
                           />
                         </span>
-                        <span className={css.navLabel({ active: isActive })}>{item.label}</span>
+                        <span className={css.navLabel({ active: isActive })}>
+                          {item.label}
+                          {isFrequent ? (
+                            <span className={css.frequentBadge} title="Sik kullanilan" style={{ marginInlineStart: '0.25rem' }}>
+                              <Star size={8} aria-hidden="true" />
+                            </span>
+                          ) : null}
+                        </span>
                       </a>
                     )
                   })}
@@ -233,32 +291,96 @@ export function DynamicIsland({
               )}
             </div>
 
+            {/* Son Kullanilanlar (komut gecmisi) */}
+            {filtreliRecentCommands.length > 0 ? (
+              <div className={css.recentSection} style={{ borderBlockEnd: 'none', borderBlockStart: `1px solid rgba(255, 255, 255, 0.08)` }}>
+                <button
+                  type="button"
+                  className={css.recentSectionHeader}
+                  onClick={() => setRecentCommandsOpen((v) => !v)}
+                  aria-expanded={recentCommandsOpen}
+                >
+                  <History size={12} aria-hidden="true" className={css.recentSectionIcon} />
+                  <span className={css.recentSectionTitle}>Son Kullanilanlar</span>
+                  <ChevronDown
+                    size={10}
+                    aria-hidden="true"
+                    className={`${css.recentSectionChevron}${recentCommandsOpen ? '' : ` ${css.recentSectionChevronCollapsed}`}`}
+                  />
+                </button>
+                {recentCommandsOpen
+                  ? filtreliRecentCommands.map((c) => {
+                      const isFrequent = commands.some((cmd) => cmd.id === c.id)
+                      return (
+                        <a
+                          key={`recent-cmd-${c.id}`}
+                          href={c.href ?? '#'}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            komut(c)
+                          }}
+                          className={css.recentItem}
+                        >
+                          <span className={css.historyPrefix}>
+                            <History size={10} aria-hidden="true" />
+                          </span>
+                          <span className={css.recentItemIcon}>
+                            <c.icon size={14} aria-hidden="true" />
+                          </span>
+                          <span className={css.recentItemContent}>
+                            <span className={css.recentItemLabel}>{c.label}</span>
+                            {isFrequent ? (
+                              <span className={css.frequentBadge} title="Sik kullanilan">
+                                <Star size={10} aria-hidden="true" />
+                              </span>
+                            ) : null}
+                          </span>
+                          {c.hint !== undefined ? (
+                            <span className={css.recentTimestamp}>{c.hint}</span>
+                          ) : null}
+                        </a>
+                      )
+                    })
+                  : null}
+              </div>
+            ) : null}
+
             {/* Hızlı komutlar */}
             {filtreliKomut.length > 0 ? (
               <div className={css.commandSection}>
                 <p className={css.sectionLabel}>Hızlı Komutlar</p>
-                {filtreliKomut.map((c) => (
-                  <a
-                    key={c.id}
-                    href={c.href ?? '#'}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      komut(c)
-                    }}
-                    className={css.commandItem}
-                  >
-                    <span className={css.commandIcon}>
-                      <c.icon size={14} aria-hidden="true" />
-                    </span>
-                    <span className={css.commandText}>
-                      <span className={css.commandLabel}>{c.label}</span>
-                      {c.hint !== undefined ? (
-                        <span className={css.commandHint}>{c.hint}</span>
-                      ) : null}
-                    </span>
-                    <ChevronRight size={12} className={css.commandChevron} aria-hidden="true" />
-                  </a>
-                ))}
+                {filtreliKomut.map((c) => {
+                  const isFrequent = recentCommandIds.has(c.id)
+                  return (
+                    <a
+                      key={c.id}
+                      href={c.href ?? '#'}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        komut(c)
+                      }}
+                      className={css.commandItem}
+                    >
+                      <span className={css.commandIcon}>
+                        <c.icon size={14} aria-hidden="true" />
+                      </span>
+                      <span className={css.commandText}>
+                        <span className={css.commandLabel}>
+                          {c.label}
+                          {isFrequent ? (
+                            <span className={css.frequentBadge} title="Sik kullanilan" style={{ marginInlineStart: '0.375rem' }}>
+                              <Star size={8} aria-hidden="true" />
+                            </span>
+                          ) : null}
+                        </span>
+                        {c.hint !== undefined ? (
+                          <span className={css.commandHint}>{c.hint}</span>
+                        ) : null}
+                      </span>
+                      <ChevronRight size={12} className={css.commandChevron} aria-hidden="true" />
+                    </a>
+                  )
+                })}
               </div>
             ) : null}
 

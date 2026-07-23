@@ -161,7 +161,7 @@ export const Summary: Story = {
 
 /** Solda harita alanı, sağda adres. Konum doğrulanırken geniş ekranda. */
 export const MapSplit: Story = {
-  args: { variant: 'mapSplit', revealExactLocation: true },
+  args: { variant: 'mapSplit', revealExactLocation: true, showMap: true },
 }
 
 /** Belge kontrolü: bütün alanlar metin olarak, seçilip kopyalanabilir. */
@@ -374,6 +374,47 @@ export const PostalCodeIsVisibleEvenWhenExactLocationIsHidden: Story = {
 
     await expect(canvas.getByText('34710')).toBeInTheDocument()
   },
+}
+
+/* ------------------------------------------------------------------ */
+/*  Map preview stories                                               */
+/* ------------------------------------------------------------------ */
+
+/** MapSplit with the actual OSM tile map preview and a red pin marker. */
+export const MapPreviewWithPin: Story = {
+  args: {
+    variant: 'mapSplit',
+    listing: ILAN_TERCIH_GIZLI,
+    revealExactLocation: true,
+    showMap: true,
+  },
+}
+
+/** Concealed location: tiles are blurred and "Konum gizli" overlay is shown. */
+export const MapConcealedLocation: Story = {
+  args: {
+    variant: 'mapSplit',
+    listing: ILAN_TERCIH_GIZLI,
+    revealExactLocation: false,
+    showMap: true,
+  },
+}
+
+/**
+ * Different zoom levels side by side: 12 (city), 15 (street), 17 (building).
+ */
+export const MapZoomLevels: Story = {
+  args: { listing: ILAN_TERCIH_GIZLI, revealExactLocation: true },
+  render: (args) => (
+    <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+      {([12, 15, 17] as const).map((zoom) => (
+        <div key={zoom} style={{ display: 'grid', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.875rem', opacity: 0.6 }}>zoom: {zoom}</span>
+          <LocationPanel {...args} variant="mapSplit" mapZoom={zoom} showMap />
+        </div>
+      ))}
+    </div>
+  ),
 }
 
 export const VariantsComparison: Story = {

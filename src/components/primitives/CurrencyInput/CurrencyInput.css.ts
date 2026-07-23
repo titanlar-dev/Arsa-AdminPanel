@@ -18,6 +18,9 @@ export const group = recipe({
     selectors: {
       '&:focus-within': { borderColor: vars.color.focus.ring },
       '&[data-invalid]': { borderColor: vars.color.danger[600] },
+      '&[data-validation-state="warning"]': { borderColor: vars.color.warning[600] },
+      '&[data-validation-state="success"]': { borderColor: vars.color.success[600] },
+      '&[data-validation-state="validating"]': { borderColor: vars.color.info[600] },
       '&[data-disabled]': {
         background: vars.color.bg.disabled,
         borderColor: vars.color.border.subtle,

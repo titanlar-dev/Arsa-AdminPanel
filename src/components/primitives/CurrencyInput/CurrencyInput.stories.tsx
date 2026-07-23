@@ -124,14 +124,59 @@ export const VariantsComparison: Story = {
       <CurrencyInput {...args} label="Sabit para birimi" value={18_750_000} />
       <CurrencyInput
         {...args}
-        label="Seçilebilir para birimi"
+        label="Secilebilir para birimi"
         value={450_000}
         currency={Currency.Usd}
         currencies={TUM_PARA_BIRIMLERI}
       />
-      <CurrencyInput {...args} label="Aidat (küçük)" size="sm" value={1_850} />
-      <CurrencyInput {...args} label="Hatalı" value={0} error="Sıfırdan büyük olmalı" />
-      <CurrencyInput {...args} label="Devre dışı" value={18_750_000} disabled />
+      <CurrencyInput {...args} label="Aidat (kucuk)" size="sm" value={1_850} />
+      <CurrencyInput {...args} label="Hatali" value={0} error="Sifirdan buyuk olmali" />
+      <CurrencyInput {...args} label="Devre disi" value={18_750_000} disabled />
     </div>
   ),
+}
+
+/** Dort dogrulama durumu yan yana. */
+export const ValidationStates: Story = {
+  render: (args) => (
+    <div style={{ display: 'grid', gap: '1.25rem' }}>
+      <CurrencyInput
+        {...args}
+        label="Hata"
+        value={0}
+        error="Fiyat sifirdan buyuk olmalidir"
+      />
+      <CurrencyInput
+        {...args}
+        label="Uyari"
+        value={150_000}
+        validationState="warning"
+        validationMessage="Bu bolge icin fiyat cok dusuk gorunuyor"
+      />
+      <CurrencyInput
+        {...args}
+        label="Basari"
+        value={18_750_000}
+        validationState="success"
+        validationMessage="Fiyat piyasa ortalamasi ile uyumlu"
+      />
+      <CurrencyInput
+        {...args}
+        label="Dogrulaniyor"
+        value={5_000_000}
+        validationState="validating"
+        validationMessage="Fiyat piyasa verileriyle karsilastiriliyor..."
+      />
+    </div>
+  ),
+}
+
+/** Uyari durumu: fiyat bu bolge icin dusuk gorunuyor. */
+export const WarningState: Story = {
+  args: {
+    value: 150_000,
+    label: 'Fiyat',
+    validationState: 'warning',
+    validationMessage: 'Bu bolge icin fiyat cok dusuk gorunuyor, kontrol edin',
+  },
 }

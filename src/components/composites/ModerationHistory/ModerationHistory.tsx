@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Download } from 'lucide-react'
 import { ModerationEventType, type ModerationEvent } from '../../../types/domain'
 import {
   ADMIN_ROLE_LABEL,
@@ -9,10 +9,17 @@ import {
 import { formatDateTime, machineDateTime } from '../../../utils/formatDateTime'
 import { Badge } from '../../primitives/Badge'
 import { Skeleton } from '../../primitives/Skeleton'
+import { DropdownMenu, DropdownMenuItem } from '../../primitives/DropdownMenu'
 import { DataTable } from '../DataTable'
 import { EmptyState } from '../EmptyState'
 import { StatusBadge } from '../StatusBadge'
 import type { ColumnDef, ModerationHistoryProps } from '../../../types/component-props'
+import {
+  generateModerationCSV,
+  generateModerationJSON,
+  downloadFile,
+  buildFilename,
+} from './moderationExport'
 import * as css from './ModerationHistory.css'
 
 type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger'
@@ -75,6 +82,8 @@ export function ModerationHistory({
   variant = 'timeline',
   loading = false,
   empty = false,
+  exportable = false,
+  onExport,
 }: ModerationHistoryProps) {
   if (loading) {
     return <Skeleton lines={4} />
@@ -89,6 +98,21 @@ export function ModerationHistory({
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   )
 
+  const handleExport = (format: 'csv' | 'json') => {
+    if (onExport) {
+      onExport(format, sirali)
+      return
+    }
+
+    if (format === 'csv') {
+      const content = generateModerationCSV(sirali)
+      downloadFile(content, buildFilename(sirali, 'csv'), 'text/csv;charset=utf-8')
+    } else {
+      const content = generateModerationJSON(sirali)
+      downloadFile(content, buildFilename(sirali, 'json'), 'application/json;charset=utf-8')
+    }
+  }
+
   if (empty || sirali.length === 0) {
     return (
       <EmptyState
@@ -98,6 +122,40 @@ export function ModerationHistory({
       />
     )
   }
+
+  const exportButton = exportable ? (
+    <div className={css.exportHeader}>
+      <div className={css.exportTriggerMobile}>
+        <DropdownMenu
+          trigger={
+            <span className={css.exportTriggerContent}>
+              <Download size={16} aria-hidden="true" />
+              Dışa aktar
+            </span>
+          }
+          label="Dışa aktarma seçenekleri"
+        >
+          <DropdownMenuItem onSelect={() => handleExport('csv')}>
+            <span className={css.exportMenuItem}>CSV olarak dışa aktar</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => handleExport('json')}>
+            <span className={css.exportMenuItem}>JSON olarak dışa aktar</span>
+          </DropdownMenuItem>
+        </DropdownMenu>
+      </div>
+    </div>
+  ) : null
+
+  /** İçeriği opsiyonel dışa aktarma başlığıyla sarar. */
+  const wrapWithExport = (content: React.ReactNode) =>
+    exportButton ? (
+      <div className={css.exportWrapper}>
+        {exportButton}
+        {content}
+      </div>
+    ) : (
+      content
+    )
 
   if (variant === 'table') {
     const columns: ColumnDef<ModerationEvent>[] = [
@@ -154,19 +212,19 @@ export function ModerationHistory({
       },
     ]
 
-    return (
+    return wrapWithExport(
       <DataTable
         rows={sirali}
         columns={columns}
         density="compact"
         visualStyle="bordered"
         mobileMode="scroll"
-      />
+      />,
     )
   }
 
   if (variant === 'compact') {
-    return (
+    return wrapWithExport(
       <ol className={css.compactList}>
         {sirali.map((event) => (
           <li key={event.id} className={css.compactItem}>
@@ -180,11 +238,11 @@ export function ModerationHistory({
             </span>
           </li>
         ))}
-      </ol>
+      </ol>,
     )
   }
 
-  return (
+  return wrapWithExport(
     <ol className={css.timeline}>
       {sirali.map((event, index) => (
         <li key={event.id} className={css.event}>
@@ -226,6 +284,6 @@ export function ModerationHistory({
           </span>
         </li>
       ))}
-    </ol>
+    </ol>,
   )
 }

@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react'
-import { Check, CircleMinus, CirclePlus, Minus } from 'lucide-react'
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import { Check, ChevronDown, CircleMinus, CirclePlus, Minus } from 'lucide-react'
 import { ROLE_PERMISSIONS, type AdminPermission } from '../../../types/domain'
 import { ADMIN_PERMISSION_LABEL, ADMIN_ROLE_LABEL } from '../../../domain/labels'
 import { Checkbox } from '../../primitives/Checkbox'
 import { Spinner } from '../../primitives/Spinner'
+import { SearchInput } from '../../primitives/SearchInput'
 import type { RolePermissionMatrixProps } from '../../../types/component-props'
 import * as css from './RolePermissionMatrix.css'
 
@@ -54,6 +55,63 @@ function hucreDurumu(
 ): HucreDurumu {
   if (taban.includes(permission) === isaretli) return isaretli ? 'granted' : 'denied'
   return isaretli ? 'added' : 'removed'
+}
+
+// ---------------------------------------------------------------------------
+// Grup tanımları: izin enum adının önekine göre Türkçe grup etiketleri.
+// ---------------------------------------------------------------------------
+
+/** İzin enum değerinden grup anahtarını çıkarır: 'listing:view' => 'listing' */
+function izinGrupKey(permission: AdminPermission): string {
+  const colonIndex = permission.indexOf(':')
+  return colonIndex !== -1 ? permission.slice(0, colonIndex) : 'other'
+}
+
+/** Grup anahtarından Türkçe etiket döndürür. */
+const GRUP_ETIKETLERI: Record<string, string> = {
+  dashboard: 'Dashboard',
+  listing: 'İlan',
+  promotion: 'Promosyon',
+  user: 'Kullanıcı',
+  category: 'Kategori',
+  report: 'Şikayet',
+  settings: 'Ayarlar',
+  permission: 'İzin',
+  theme: 'Tema',
+  audit: 'Denetim',
+}
+
+// ---------------------------------------------------------------------------
+// Arama vurgulama
+// ---------------------------------------------------------------------------
+
+/** Aranana göre etiket metninde eşleşen kısımları `<mark>` ile sarar. */
+function vurgulayMetin(text: string, query: string): ReactNode {
+  if (!query) return text
+  const lowerText = text.toLocaleLowerCase('tr')
+  const lowerQuery = query.toLocaleLowerCase('tr')
+  const idx = lowerText.indexOf(lowerQuery)
+  if (idx === -1) return text
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className={css.highlightMark}>{text.slice(idx, idx + query.length)}</mark>
+      {text.slice(idx + query.length)}
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Debounce hook
+// ---------------------------------------------------------------------------
+
+function useDebounce(value: string, delay: number): string {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(timer)
+  }, [value, delay])
+  return debounced
 }
 
 /**
@@ -112,6 +170,8 @@ export function RolePermissionMatrix({
   disabled = false,
   saving = false,
   onChange,
+  searchable = false,
+  grouped = false,
 }: RolePermissionMatrixProps) {
   if (roles.length === 0 || permissions.length === 0) return null
 
@@ -119,9 +179,53 @@ export function RolePermissionMatrix({
   const etkinVaryant = variant === 'editable' && onChange === undefined ? 'readOnly' : variant
   const kilitli = disabled || saving
 
+  // --- Arama durumu ----------------------------------------------------------
+  const [aramaMetni, setAramaMetni] = useState('')
+  const debouncedArama = useDebounce(aramaMetni, 200)
+
+  const suzulmusIzinler = useMemo(() => {
+    if (!searchable || !debouncedArama) return permissions
+    const q = debouncedArama.toLocaleLowerCase('tr')
+    return permissions.filter((p) =>
+      ADMIN_PERMISSION_LABEL[p].toLocaleLowerCase('tr').includes(q),
+    )
+  }, [permissions, debouncedArama, searchable])
+
+  // --- Grup durumu -----------------------------------------------------------
+  const [kapalıGruplar, setKapaliGruplar] = useState<Set<string>>(new Set())
+
+  const gruplar = useMemo(() => {
+    if (!grouped) return null
+    const map = new Map<string, AdminPermission[]>()
+    const sira: string[] = []
+    for (const p of suzulmusIzinler) {
+      const key = izinGrupKey(p)
+      if (!map.has(key)) {
+        map.set(key, [])
+        sira.push(key)
+      }
+      map.get(key)!.push(p)
+    }
+    return sira.map((key) => ({
+      key,
+      label: GRUP_ETIKETLERI[key] ?? key,
+      permissions: map.get(key)!,
+    }))
+  }, [grouped, suzulmusIzinler])
+
+  const grupToggle = useCallback((key: string) => {
+    setKapaliGruplar((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }, [])
+
+  // --- Diff sayacı -----------------------------------------------------------
   const degisenSayisi =
     etkinVaryant === 'diff'
-      ? permissions.reduce(
+      ? suzulmusIzinler.reduce(
           (toplam, permission) =>
             toplam +
             roles.filter((role) => {
@@ -142,28 +246,146 @@ export function RolePermissionMatrix({
     karşılaşacağını yalnız buradan öğrenir.
   */
   const captionMetni =
-    `Rol ve izin matrisi: ${permissions.length} izin satırı, ${roles.length} rol sütunu. ` +
+    `Rol ve izin matrisi: ${suzulmusIzinler.length} izin satırı, ${roles.length} rol sütunu. ` +
     (etkinVaryant === 'editable'
       ? 'Her hücre işaretlenebilir bir kutudur.'
       : etkinVaryant === 'readOnly'
         ? 'Salt okunur.'
         : `Salt okunur; ${degisenSayisi} hücre önceki hâlinden farklı.`)
 
+  // --- Satır render yardımcıları ---------------------------------------------
+
+  const renderPermissionRow = (permission: AdminPermission) => (
+    <tr key={permission}>
+      <th scope="row" className={css.permissionHeader}>
+        {searchable && debouncedArama
+          ? vurgulayMetin(ADMIN_PERMISSION_LABEL[permission], debouncedArama)
+          : ADMIN_PERMISSION_LABEL[permission]}
+      </th>
+
+      {roles.map((role) => {
+        const isaretli = value[role].includes(permission)
+
+        if (etkinVaryant === 'editable') {
+          return (
+            <td key={role} className={css.cell({ change: 'unchanged' })}>
+              <Checkbox
+                label={`${ADMIN_ROLE_LABEL[role]} — ${ADMIN_PERMISSION_LABEL[permission]}`}
+                hideLabel
+                checked={isaretli}
+                disabled={kilitli}
+                onCheckedChange={(next) => onChange?.(role, permission, next)}
+              />
+            </td>
+          )
+        }
+
+        const gosterim: HucreDurumu =
+          etkinVaryant === 'diff'
+            ? hucreDurumu(baseline[role], permission, isaretli)
+            : isaretli
+              ? 'granted'
+              : 'denied'
+        const sunum = HUCRE_SUNUMU[gosterim]
+
+        return (
+          <td key={role} className={css.cell({ change: sunum.change })}>
+            <span className={css.mark({ state: gosterim })}>
+              {sunum.icon}
+              <span className={css.visuallyHidden}>{sunum.text}</span>
+            </span>
+          </td>
+        )
+      })}
+    </tr>
+  )
+
+  // --- Özet satırı -----------------------------------------------------------
+
+  const summaryRow = (izinListesi: AdminPermission[]) => (
+    <tr className={css.summaryRow}>
+      <th scope="row" className={css.summaryHeader}>
+        Toplam
+      </th>
+      {roles.map((role) => {
+        const granted = izinListesi.filter((p) => value[role].includes(p)).length
+        return (
+          <td key={role} className={css.summaryCell}>
+            {granted} / {izinListesi.length}
+          </td>
+        )
+      })}
+    </tr>
+  )
+
+  // --- Tablo gövdesi ---------------------------------------------------------
+
+  const tableBody = () => {
+    if (grouped && gruplar) {
+      return gruplar.map((grup) => {
+        const kapali = kapalıGruplar.has(grup.key)
+        return (
+          <tbody key={grup.key}>
+            <tr
+              className={css.groupHeader}
+              onClick={() => grupToggle(grup.key)}
+              role="button"
+              aria-expanded={!kapali}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  grupToggle(grup.key)
+                }
+              }}
+            >
+              <th
+                colSpan={roles.length + 1}
+                className={css.groupHeaderCell}
+              >
+                <span
+                  className={`${css.groupToggleIcon} ${kapali ? css.groupToggleIconCollapsed : ''}`}
+                >
+                  <ChevronDown size={16} aria-hidden="true" />
+                </span>
+                {grup.label}
+                <span className={css.visuallyHidden}>
+                  {` — ${grup.permissions.length} izin, ${kapali ? 'daraltilmis' : 'genisletilmis'}`}
+                </span>
+              </th>
+            </tr>
+            {!kapali && grup.permissions.map(renderPermissionRow)}
+          </tbody>
+        )
+      })
+    }
+
+    return <tbody>{suzulmusIzinler.map(renderPermissionRow)}</tbody>
+  }
+
   return (
     <div className={css.root}>
+      {searchable ? (
+        <div className={css.searchContainer}>
+          <SearchInput
+            label="Yetki ara"
+            placeholder="Yetki adina gore filtrele..."
+            value={aramaMetni}
+            onChange={(e) => setAramaMetni(e.target.value)}
+            onClear={() => setAramaMetni('')}
+            debounceMs={9999}
+          />
+          {debouncedArama ? (
+            <p className={css.searchMeta}>
+              {suzulmusIzinler.length} / {permissions.length} yetki gösteriliyor
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {etkinVaryant === 'diff' ? (
         <div className={css.diffBar}>
           <span className={css.diffCount}>
-            {/*
-              "Önceki hâli" bilerek belirsiz: tabanı `baseline` söylüyor ve ne
-              olduğunu yalnız çağıran bilir — ayarlar ekranı **kayıtlı** izinleri
-              veriyor, verilmeyen çağıranda taban `ROLE_PERMISSIONS`'a düşüyor.
-              Faz 2'de burada "varsayılan izinlerden farklı" yazıyordu; `baseline`
-              eklenince o cümle kayıtlı hâle göre kıyaslarken "varsayılan" demeye
-              devam ediyordu — yani ekrandaki tek görünür açıklama yalan
-              söylüyordu. Tabanı adlandırmak çağıranın işi (SettingsPage matrisin
-              üstünde hangi soruyu sorduğunu yazıyor).
-            */}
             {degisenSayisi === 0
               ? 'Önceki hâline göre değişiklik yok'
               : `${degisenSayisi.toLocaleString('tr-TR')} hücre önceki hâlinden farklı`}
@@ -184,92 +406,38 @@ export function RolePermissionMatrix({
 
       {saving ? (
         <p className={css.savingBar}>
-          {/* Spinner'ın kendi `role="status"`'ü duyuruyu yapar; görünür metin onu tekrarlamasın. */}
           <Spinner size="sm" label="İzinler kaydediliyor" />
           <span aria-hidden="true">İzinler kaydediliyor…</span>
         </p>
       ) : null}
 
-      {/*
-        `tabIndex={0}`: matris dar ekranda yatay kaydırılır ve `readOnly`'de
-        içinde **hiç** odaklanılabilir öğe yoktur — kutular okunur rozete
-        dönüşür. Düzenleme modunda kutular kabı klavyeye zaten açıyordu, salt
-        okunur modda tablo yalnız fareyle kaydırılabiliyordu: aynı component,
-        yetkisi olmayan kullanıcı için erişilemez. Gerekçenin uzunu Drawer.tsx'te.
-      */}
-      <div className={css.scroller} tabIndex={0}>
-        <table className={css.table} aria-busy={saving}>
-          <caption className={css.visuallyHidden}>{captionMetni}</caption>
+      {searchable && debouncedArama && suzulmusIzinler.length === 0 ? (
+        <p className={css.emptySearch}>Aramanızla eşleşen yetki bulunamadı</p>
+      ) : (
+        <div className={css.scroller} tabIndex={0}>
+          <table className={css.table} aria-busy={saving}>
+            <caption className={css.visuallyHidden}>{captionMetni}</caption>
 
-          <thead>
-            <tr>
-              {/* Köşe hücresi: altındaki satır başlıkları sütununu adlandırır, o yüzden `col`. */}
-              <th scope="col" className={css.cornerHeader}>
-                İzin
-              </th>
-
-              {roles.map((role) => (
-                <th key={role} scope="col" className={css.roleHeader}>
-                  {ADMIN_ROLE_LABEL[role]}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            {permissions.map((permission) => (
-              <tr key={permission}>
-                <th scope="row" className={css.permissionHeader}>
-                  {ADMIN_PERMISSION_LABEL[permission]}
+            <thead>
+              <tr>
+                <th scope="col" className={css.cornerHeader}>
+                  İzin
                 </th>
 
-                {roles.map((role) => {
-                  const isaretli = value[role].includes(permission)
-
-                  if (etkinVaryant === 'editable') {
-                    return (
-                      <td key={role} className={css.cell({ change: 'unchanged' })}>
-                        <Checkbox
-                          /*
-                            Ad hem rolü hem izni söyler. Gizli, çünkü görünseydi
-                            her hücrede tekrar edip tabloyu okunmaz yapardı —
-                            ama kaldırılamaz: sütun başlığına güvenmek, kutuya
-                            klavyeyle doğrudan gelen kullanıcıyı bağlamsız bırakır.
-                          */
-                          label={`${ADMIN_ROLE_LABEL[role]} — ${ADMIN_PERMISSION_LABEL[permission]}`}
-                          hideLabel
-                          checked={isaretli}
-                          disabled={kilitli}
-                          // Sarmalanıyor: Base UI onCheckedChange'e ikinci bir
-                          // eventDetails argümanı geçiyor, sözleşme üç argümanlı.
-                          onCheckedChange={(next) => onChange?.(role, permission, next)}
-                        />
-                      </td>
-                    )
-                  }
-
-                  const gosterim: HucreDurumu =
-                    etkinVaryant === 'diff'
-                      ? hucreDurumu(baseline[role], permission, isaretli)
-                      : isaretli
-                        ? 'granted'
-                        : 'denied'
-                  const sunum = HUCRE_SUNUMU[gosterim]
-
-                  return (
-                    <td key={role} className={css.cell({ change: sunum.change })}>
-                      <span className={css.mark({ state: gosterim })}>
-                        {sunum.icon}
-                        <span className={css.visuallyHidden}>{sunum.text}</span>
-                      </span>
-                    </td>
-                  )
-                })}
+                {roles.map((role) => (
+                  <th key={role} scope="col" className={css.roleHeader}>
+                    {ADMIN_ROLE_LABEL[role]}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+
+            {tableBody()}
+
+            <tfoot>{summaryRow(suzulmusIzinler)}</tfoot>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

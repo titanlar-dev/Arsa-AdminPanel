@@ -738,3 +738,268 @@ export const VariantsComparison: Story = {
     </div>
   ),
 }
+
+/* ── Arama ve genişletme kontrolleri ─────────────────────────────────────── */
+
+/**
+ * 50+ düğümlü zengin ağaç: gerçekçi Türkçe gayrimenkul kategorileri.
+ * Aramanın geniş bir hiyerarşide çalıştığını göstermek için.
+ */
+const GENIS_AGAC: CategoryTreeNode[] = [
+  {
+    id: 'konut',
+    label: 'Konut',
+    active: true,
+    count: 12_400,
+    children: [
+      { id: 'konut-daire', label: 'Daire', active: true, count: 4820 },
+      { id: 'konut-rezidans', label: 'Rezidans', active: true, count: 610 },
+      { id: 'konut-mustakil', label: 'Müstakil Ev', active: true, count: 342 },
+      { id: 'konut-villa', label: 'Villa', active: true, count: 288 },
+      { id: 'konut-yazlik', label: 'Yazlık', active: true, count: 174 },
+      { id: 'konut-ciftlikevi', label: 'Çiftlik Evi', active: true, count: 46 },
+      { id: 'konut-prefabrik', label: 'Prefabrik', active: false, count: 31 },
+      { id: 'konut-kooperatif', label: 'Kooperatif Dairesi', active: true, count: 89 },
+      { id: 'konut-dublex', label: 'Dubleks', active: true, count: 215 },
+      { id: 'konut-triplex', label: 'Tripleks', active: true, count: 67 },
+    ],
+  },
+  {
+    id: 'arsa',
+    label: 'Arsa',
+    active: true,
+    count: 3_200,
+    children: [
+      { id: 'arsa-imarli', label: 'İmarlı Arsa', active: true, count: 912 },
+      { id: 'arsa-imarsiz', label: 'İmarsız Arsa', active: true, count: 654 },
+      { id: 'arsa-ticari-imarli', label: 'Ticari İmarlı', active: true, count: 388 },
+      { id: 'arsa-sanayi-imarli', label: 'Sanayi İmarlı', active: true, count: 141 },
+      { id: 'arsa-turizm-imarli', label: 'Turizm İmarlı', active: true, count: 77 },
+      { id: 'arsa-tarla', label: 'Tarla', active: true, count: 520 },
+      { id: 'arsa-bagbahce', label: 'Bağ & Bahçe', active: true, count: 209 },
+      { id: 'arsa-zeytinlik', label: 'Zeytinlik', active: true, count: 95 },
+    ],
+  },
+  {
+    id: 'ticari',
+    label: 'Ticari',
+    active: true,
+    count: 4_800,
+    children: [
+      { id: 'ticari-ofis', label: 'Ofis', active: true, count: 842 },
+      { id: 'ticari-dukkan', label: 'Dükkan', active: true, count: 1163 },
+      { id: 'ticari-magaza', label: 'Mağaza', active: true, count: 320 },
+      { id: 'ticari-depo', label: 'Depo', active: true, count: 274 },
+      { id: 'ticari-fabrika', label: 'Fabrika', active: true, count: 96 },
+      { id: 'ticari-atolye', label: 'Atölye', active: true, count: 187 },
+      { id: 'ticari-plaza', label: 'Plaza Katı', active: true, count: 58 },
+      { id: 'ticari-is-hani', label: 'İş Hanı', active: true, count: 134 },
+      { id: 'ticari-showroom', label: 'Showroom', active: true, count: 42 },
+    ],
+  },
+  {
+    id: 'bina',
+    label: 'Bina',
+    active: true,
+    count: 450,
+    children: [
+      { id: 'bina-komple', label: 'Komple Bina', active: true, count: 143 },
+      { id: 'bina-apart', label: 'Apart', active: true, count: 85 },
+      { id: 'bina-is-merkezi', label: 'İş Merkezi', active: true, count: 72 },
+      { id: 'bina-avm', label: 'AVM', active: true, count: 15 },
+      { id: 'bina-han', label: 'Han', active: true, count: 28 },
+      { id: 'bina-okul', label: 'Okul Binası', active: false, count: 12 },
+    ],
+  },
+  {
+    id: 'devremulk',
+    label: 'Devremülk',
+    active: false,
+    count: 62,
+    children: [
+      { id: 'devremulk-devremulk', label: 'Devremülk', active: false, count: 62 },
+    ],
+  },
+  {
+    id: 'turistik',
+    label: 'Turistik Tesis',
+    active: true,
+    count: 520,
+    children: [
+      { id: 'turistik-otel', label: 'Otel', active: true, count: 118 },
+      { id: 'turistik-butik-otel', label: 'Butik Otel', active: true, count: 64 },
+      { id: 'turistik-apart-otel', label: 'Apart Otel', active: true, count: 39 },
+      { id: 'turistik-pansiyon', label: 'Pansiyon', active: true, count: 52 },
+      { id: 'turistik-motel', label: 'Motel', active: true, count: 17 },
+      { id: 'turistik-tatil-koyu', label: 'Tatil Köyü', active: true, count: 23 },
+      { id: 'turistik-kamp', label: 'Kamp Yeri', active: false, count: 11 },
+    ],
+  },
+  {
+    id: 'proje',
+    label: 'Proje',
+    active: true,
+    count: 880,
+    children: [
+      { id: 'proje-konut', label: 'Konut Projesi', active: true, count: 420 },
+      { id: 'proje-ticari', label: 'Ticari Proje', active: true, count: 180 },
+      { id: 'proje-karma', label: 'Karma Proje', active: true, count: 150 },
+      { id: 'proje-toplu-konut', label: 'Toplu Konut', active: true, count: 130 },
+    ],
+  },
+  {
+    id: 'garaj',
+    label: 'Garaj & Otopark',
+    active: true,
+    count: 340,
+    children: [
+      { id: 'garaj-kapali', label: 'Kapalı Garaj', active: true, count: 180 },
+      { id: 'garaj-acik', label: 'Açık Otopark', active: true, count: 95 },
+      { id: 'garaj-otopark', label: 'Otopark Yeri', active: true, count: 65 },
+    ],
+  },
+]
+
+/**
+ * Arama kutulu ağaç: 50+ kategorilik zengin hiyerarşide istemci tarafı arama.
+ */
+export const SearchableTree: Story = {
+  args: {
+    searchable: true,
+    showExpandControls: true,
+  },
+  render: function Render(args) {
+    const [acik, setAcik] = useState<string[]>([])
+    const [secili, setSecili] = useState<string | undefined>(undefined)
+
+    return (
+      <CategoryTree
+        {...args}
+        nodes={GENIS_AGAC}
+        expandedIds={acik}
+        {...(secili !== undefined && { selectedId: secili })}
+        onSelect={(id) => setSecili(id)}
+        onExpandedIdsChange={(ids) => setAcik(ids)}
+      />
+    )
+  },
+}
+
+/**
+ * Arama sonucu: "villa" aranmış, eşleşen metin `<mark>` ile vurgulanmış.
+ */
+export const SearchWithHighlight: Story = {
+  args: {
+    searchable: true,
+  },
+  render: function Render(args) {
+    const [acik, setAcik] = useState<string[]>(['konut'])
+    const [secili, setSecili] = useState<string | undefined>(undefined)
+
+    return (
+      <CategoryTree
+        {...args}
+        nodes={GENIS_AGAC}
+        expandedIds={acik}
+        {...(secili !== undefined && { selectedId: secili })}
+        onSelect={(id) => setSecili(id)}
+        onExpandedIdsChange={(ids) => setAcik(ids)}
+      />
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    const aramaKutusu = canvas.getByPlaceholderText('Kategori ara...')
+    await expect(aramaKutusu).toBeInTheDocument()
+
+    await userEvent.type(aramaKutusu, 'villa')
+
+    /* Debounce sonrası: süzülmüş ağaç "Villa" düğümünü göstermeli. */
+    await new Promise((r) => setTimeout(r, 400))
+
+    /* Villa eşleşmeli ve görünür olmalı. */
+    const villaText = canvas.getByText((content, element) => {
+      return element?.tagName === 'MARK' && content === 'Villa'
+    })
+    await expect(villaText).toBeInTheDocument()
+  },
+}
+
+/** Tümünü aç / Tümünü kapat butonları. */
+export const ExpandCollapseControls: Story = {
+  args: {
+    showExpandControls: true,
+  },
+  render: function Render(args) {
+    const [acik, setAcik] = useState<string[]>([])
+    const [secili, setSecili] = useState<string | undefined>(undefined)
+
+    return (
+      <CategoryTree
+        {...args}
+        nodes={GENIS_AGAC}
+        expandedIds={acik}
+        {...(secili !== undefined && { selectedId: secili })}
+        onSelect={(id) => setSecili(id)}
+        onExpandedIdsChange={(ids) => setAcik(ids)}
+      />
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    /* "Tümünü aç" butonuna tıkla. */
+    const tumunuAcButonu = canvas.getByText('Tümünü aç')
+    await expect(tumunuAcButonu).toBeInTheDocument()
+    await userEvent.click(tumunuAcButonu)
+
+    /* Tüm dallar açılmış olmalı: alt kategoriler görünür. */
+    await expect(canvas.getByText('Daire')).toBeInTheDocument()
+    await expect(canvas.getByText('Ofis')).toBeInTheDocument()
+
+    /* "Tümünü kapat" butonuna tıkla. */
+    const tumunuKapatButonu = canvas.getByText('Tümünü kapat')
+    await userEvent.click(tumunuKapatButonu)
+
+    /* Alt kategoriler gizlenmeli. */
+    await expect(canvas.queryByText('Daire')).not.toBeInTheDocument()
+  },
+}
+
+/**
+ * Boş arama sonucu: eşleşmeyen bir terim arandığında EmptyState gösterilir.
+ */
+export const EmptySearchResult: Story = {
+  args: {
+    searchable: true,
+  },
+  render: function Render(args) {
+    const [acik, setAcik] = useState<string[]>([])
+    const [secili, setSecili] = useState<string | undefined>(undefined)
+
+    return (
+      <CategoryTree
+        {...args}
+        nodes={GENIS_AGAC}
+        expandedIds={acik}
+        {...(secili !== undefined && { selectedId: secili })}
+        onSelect={(id) => setSecili(id)}
+        onExpandedIdsChange={(ids) => setAcik(ids)}
+      />
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    const aramaKutusu = canvas.getByPlaceholderText('Kategori ara...')
+    await userEvent.type(aramaKutusu, 'xyzbulunamayacak')
+
+    /* Debounce sonrası boş durum mesajı görünmeli. */
+    await new Promise((r) => setTimeout(r, 400))
+
+    await expect(
+      canvas.getByText('Aramanızla eşleşen kategori bulunamadı'),
+    ).toBeInTheDocument()
+  },
+}

@@ -257,11 +257,41 @@ export const ResetToUndefinedAllowsRepick: Story = {
 export const VariantsComparison: Story = {
   render: (args) => (
     <div style={{ display: 'grid', gap: '1.25rem' }}>
-      <Select {...args} label="Varsayılan" />
-      <Select {...args} label="Seçili" value="konut" />
+      <Select {...args} label="Varsayilan" />
+      <Select {...args} label="Secili" value="konut" />
       <Select {...args} label="Aranabilir" options={ILLER} searchable />
-      <Select {...args} label="Hatalı" error="Seçim zorunlu" />
-      <Select {...args} label="Devre dışı" value="konut" disabled />
+      <Select {...args} label="Hatali" error="Secim zorunlu" />
+      <Select {...args} label="Devre disi" value="konut" disabled />
+    </div>
+  ),
+}
+
+/** Dort dogrulama durumu yan yana. */
+export const ValidationStates: Story = {
+  render: (args) => (
+    <div style={{ display: 'grid', gap: '1.25rem' }}>
+      <Select {...args} label="Hata" error="Kategori secimi zorunludur" />
+      <Select
+        {...args}
+        label="Uyari"
+        value="devremulk"
+        validationState="warning"
+        validationMessage="Devremulk kategorisinde ilan sayisi cok dusuk"
+      />
+      <Select
+        {...args}
+        label="Basari"
+        value="konut"
+        validationState="success"
+        validationMessage="Kategori secildi"
+      />
+      <Select
+        {...args}
+        label="Dogrulaniyor"
+        value="arsa"
+        validationState="validating"
+        validationMessage="Kategori yetkiniz kontrol ediliyor..."
+      />
     </div>
   ),
 }
