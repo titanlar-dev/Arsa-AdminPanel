@@ -1,19 +1,16 @@
-name: Storybook Pages
+name: Panel Pages
 
-# Her main push'unda Storybook'u derleyip GitHub Pages'e yayınlar.
-# CI doğrulama akışından (ci.yml) bilerek ayrı: deploy, testlerden bağımsız kalsın.
+# Her main push'unda admin paneli derleyip GitHub Pages'e yayınlar.
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-# actions/deploy-pages'in Pages'e yazması için gereken izinler.
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Aynı anda tek bir Pages yayını çalışır; arka arkaya push'ta sıraya sokulur.
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -30,11 +27,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # packageManager alanı package.json'da sabit.
       - name: pnpm kurulumu
         uses: pnpm/action-setup@v6
 
-      # Node sürümü .nvmrc'den; lokal ile CI ayrışmasın.
       - name: Node.js kurulumu
         uses: actions/setup-node@v7
         with:
@@ -44,23 +39,18 @@ jobs:
       - name: Bağımlılıklar
         run: pnpm install --frozen-lockfile
 
-      # Base path burada geçilir: project site alt yoldan servis edildiği için şart.
-      - name: Storybook build
-        run: pnpm build-storybook
-        env:
-          STORYBOOK_BASE_PATH: /Arsam.net-AdminPanel/
+      - name: Vite build
+        run: pnpm build
 
       - name: Pages yapılandırması
         uses: actions/configure-pages@v5
         with:
-          # Repoda Pages henüz açık değilse action kendisi etkinleştirir
-          # (kaynak = GitHub Actions). Aksi hâlde "Get Pages site failed" verir.
           enablement: true
 
       - name: Artifact yükle
         uses: actions/upload-pages-artifact@v3
         with:
-          path: storybook-static
+          path: dist
 
       - name: Pages'e dağıt
         id: deployment
