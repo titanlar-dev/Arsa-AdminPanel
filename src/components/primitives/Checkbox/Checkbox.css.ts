@@ -29,29 +29,29 @@ export const box = style({
   height: '1.25rem',
   marginTop: '0.125rem',
   padding: 0,
-  background: vars.color.bg.surface,
+  background: 'rgba(255, 255, 255, 0.06)',
   border: '1px solid',
-  borderColor: vars.color.border.strong,
+  borderColor: 'rgba(255, 255, 255, 0.15)',
   borderRadius: vars.radius.sm,
-  color: vars.color.neutral[0],
+  color: '#ffffff',
   transitionProperty: 'background-color, border-color',
   transitionDuration: vars.duration.fast,
   transitionTimingFunction: vars.ease.standard,
 
   selectors: {
     '&[data-checked], &[data-indeterminate]': {
-      background: vars.color.primary[700],
-      borderColor: vars.color.primary[700],
+      background: '#3b82f6',
+      borderColor: '#3b82f6',
     },
     '&[data-disabled]': {
-      background: vars.color.bg.disabled,
-      borderColor: vars.color.border.subtle,
+      background: 'rgba(255, 255, 255, 0.03)',
+      borderColor: 'rgba(255, 255, 255, 0.06)',
       color: vars.color.text.disabled,
     },
     '&[data-disabled][data-checked], &[data-disabled][data-indeterminate]': {
       background: vars.color.neutral[400],
       borderColor: vars.color.neutral[400],
-      color: vars.color.neutral[0],
+      color: '#ffffff',
     },
   },
 })

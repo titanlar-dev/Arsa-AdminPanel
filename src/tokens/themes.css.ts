@@ -415,21 +415,52 @@ globalStyle('[data-theme="warm-amber"]', {
 
 globalStyle('[data-theme="corporate-blue-dark"]', {
   vars: {
-    ...assignVars(vars.color.neutral, slateNeutral),
-    ...assignVars(vars.color.primary, blueScale),
+    ...assignVars(vars.color.neutral, {
+      ...slateNeutral,
+      /* Açık tonlar koyu zeminde cam efekti uyumlu yarı-saydam değerlere dönüşür */
+      0: 'rgba(255, 255, 255, 0.06)',
+      50: slateNeutral[800],
+      100: 'rgba(255, 255, 255, 0.06)',
+      200: 'rgba(255, 255, 255, 0.08)',
+      300: 'rgba(255, 255, 255, 0.12)',
+    }),
+    ...assignVars(vars.color.primary, {
+      ...blueScale,
+      /* Açık tonlar koyu zeminde indigo-tinted yarı-saydam değerlere dönüşür */
+      50: 'rgba(99, 102, 241, 0.10)',
+      100: 'rgba(99, 102, 241, 0.15)',
+      200: 'rgba(99, 102, 241, 0.20)',
+      300: 'rgba(99, 102, 241, 0.30)',
+    }),
 
     /* ── Durum renkleri (üç palettede aynı) ── */
-    ...assignVars(vars.color.success, success),
-    ...assignVars(vars.color.warning, warning),
-    ...assignVars(vars.color.danger, danger),
-    ...assignVars(vars.color.info, info),
+    ...assignVars(vars.color.success, {
+      ...success,
+      50: 'rgba(34, 197, 94, 0.10)',
+      100: 'rgba(34, 197, 94, 0.15)',
+    }),
+    ...assignVars(vars.color.warning, {
+      ...warning,
+      50: 'rgba(234, 179, 8, 0.10)',
+      100: 'rgba(234, 179, 8, 0.15)',
+    }),
+    ...assignVars(vars.color.danger, {
+      ...danger,
+      50: 'rgba(239, 68, 68, 0.10)',
+      100: 'rgba(239, 68, 68, 0.15)',
+    }),
+    ...assignVars(vars.color.info, {
+      ...info,
+      50: 'rgba(56, 189, 248, 0.10)',
+      100: 'rgba(56, 189, 248, 0.15)',
+    }),
 
-    /* ── Zemin: koyu, yüzey bir ton açık ── */
+    /* ── Zemin: cam efekti uyumlu, yarı-saydam katmanlar ── */
     [vars.color.bg.canvas]: slateNeutral[900],
-    [vars.color.bg.surface]: slateNeutral[800],
-    [vars.color.bg.subtle]: slateNeutral[700],
-    [vars.color.bg.elevated]: slateNeutral[800],
-    [vars.color.bg.disabled]: slateNeutral[700],
+    [vars.color.bg.surface]: 'rgba(255, 255, 255, 0.04)',
+    [vars.color.bg.subtle]: 'rgba(255, 255, 255, 0.03)',
+    [vars.color.bg.elevated]: 'rgba(255, 255, 255, 0.06)',
+    [vars.color.bg.disabled]: 'rgba(255, 255, 255, 0.05)',
     [vars.color.bg.overlay]: 'rgb(0 0 0 / 0.6)',
 
     /* ── Metin: açık tonlar ── */
@@ -441,10 +472,10 @@ globalStyle('[data-theme="corporate-blue-dark"]', {
     [vars.color.text.link]: blueScale[400],
     [vars.color.text.linkHover]: blueScale[300],
 
-    /* ── Kenarlıklar: koyu zeminde daha açık ── */
-    [vars.color.border.default]: slateNeutral[600],
-    [vars.color.border.strong]: slateNeutral[400],
-    [vars.color.border.subtle]: slateNeutral[700],
+    /* ── Kenarlıklar: cam efekti uyumlu, yarı-saydam ── */
+    [vars.color.border.default]: 'rgba(255, 255, 255, 0.08)',
+    [vars.color.border.strong]: 'rgba(255, 255, 255, 0.16)',
+    [vars.color.border.subtle]: 'rgba(255, 255, 255, 0.05)',
 
     /* ── Eylem düğmeleri ── */
     [vars.color.action.primary.bg]: blueScale[600],
@@ -452,14 +483,14 @@ globalStyle('[data-theme="corporate-blue-dark"]', {
     [vars.color.action.primary.active]: blueScale[400],
     [vars.color.action.primary.text]: slateNeutral[0],
 
-    [vars.color.action.secondary.bg]: slateNeutral[800],
-    [vars.color.action.secondary.hover]: slateNeutral[700],
-    [vars.color.action.secondary.active]: slateNeutral[600],
+    [vars.color.action.secondary.bg]: 'rgba(255, 255, 255, 0.06)',
+    [vars.color.action.secondary.hover]: 'rgba(255, 255, 255, 0.10)',
+    [vars.color.action.secondary.active]: 'rgba(255, 255, 255, 0.14)',
     [vars.color.action.secondary.text]: slateNeutral[50],
-    [vars.color.action.secondary.border]: slateNeutral[500],
+    [vars.color.action.secondary.border]: 'rgba(255, 255, 255, 0.12)',
 
-    [vars.color.action.ghost.hover]: slateNeutral[700],
-    [vars.color.action.ghost.active]: slateNeutral[600],
+    [vars.color.action.ghost.hover]: 'rgba(255, 255, 255, 0.06)',
+    [vars.color.action.ghost.active]: 'rgba(255, 255, 255, 0.10)',
     [vars.color.action.ghost.text]: slateNeutral[200],
 
     [vars.color.action.danger.bg]: danger[700],
@@ -469,48 +500,48 @@ globalStyle('[data-theme="corporate-blue-dark"]', {
 
     /* ── Odak / seçim / tablo ── */
     [vars.color.focus.ring]: blueScale[400],
-    [vars.color.selection.bg]: blueScale[900],
-    [vars.color.table.rowHover]: slateNeutral[700],
+    [vars.color.selection.bg]: 'rgba(99, 102, 241, 0.25)',
+    [vars.color.table.rowHover]: 'rgba(99, 102, 241, 0.06)',
 
-    /* ── Durum rozetleri: koyu zeminde okunabilir kalacak şekilde ayarlandı ── */
-    [vars.color.status.draft.bg]: slateNeutral[700],
+    /* ── Durum rozetleri: cam efekti uyumlu yarı-saydam zeminler ── */
+    [vars.color.status.draft.bg]: 'rgba(255, 255, 255, 0.06)',
     [vars.color.status.draft.text]: slateNeutral[200],
-    [vars.color.status.draft.border]: slateNeutral[500],
+    [vars.color.status.draft.border]: 'rgba(255, 255, 255, 0.16)',
     [vars.color.status.draft.solid]: slateNeutral[500],
 
-    [vars.color.status.pending.bg]: '#422006',
+    [vars.color.status.pending.bg]: 'rgba(234, 179, 8, 0.12)',
     [vars.color.status.pending.text]: warning[100],
     [vars.color.status.pending.border]: warning[600],
     [vars.color.status.pending.solid]: warning[700],
 
-    [vars.color.status.changes.bg]: '#082f49',
+    [vars.color.status.changes.bg]: 'rgba(56, 189, 248, 0.12)',
     [vars.color.status.changes.text]: info[100],
     [vars.color.status.changes.border]: info[600],
     [vars.color.status.changes.solid]: info[700],
 
-    [vars.color.status.published.bg]: '#052e16',
+    [vars.color.status.published.bg]: 'rgba(34, 197, 94, 0.12)',
     [vars.color.status.published.text]: success[100],
     [vars.color.status.published.border]: success[600],
     [vars.color.status.published.solid]: success[700],
 
-    [vars.color.status.rejected.bg]: '#450a0a',
+    [vars.color.status.rejected.bg]: 'rgba(239, 68, 68, 0.12)',
     [vars.color.status.rejected.text]: danger[100],
     [vars.color.status.rejected.border]: danger[600],
     [vars.color.status.rejected.solid]: danger[700],
 
-    [vars.color.status.paused.bg]: slateNeutral[600],
+    [vars.color.status.paused.bg]: 'rgba(255, 255, 255, 0.08)',
     [vars.color.status.paused.text]: slateNeutral[200],
-    [vars.color.status.paused.border]: slateNeutral[400],
+    [vars.color.status.paused.border]: 'rgba(255, 255, 255, 0.20)',
     [vars.color.status.paused.solid]: slateNeutral[600],
 
-    [vars.color.status.expired.bg]: '#451a03',
+    [vars.color.status.expired.bg]: 'rgba(234, 179, 8, 0.08)',
     [vars.color.status.expired.text]: warning[100],
     [vars.color.status.expired.border]: warning[700],
     [vars.color.status.expired.solid]: warning[800],
 
-    [vars.color.status.archived.bg]: slateNeutral[600],
+    [vars.color.status.archived.bg]: 'rgba(255, 255, 255, 0.10)',
     [vars.color.status.archived.text]: slateNeutral[100],
-    [vars.color.status.archived.border]: slateNeutral[400],
+    [vars.color.status.archived.border]: 'rgba(255, 255, 255, 0.20)',
     [vars.color.status.archived.solid]: slateNeutral[700],
 
     /* ── Gölgeler: koyu zeminde daha yoğun ── */

@@ -22,14 +22,14 @@ export const tag = recipe({
   variants: {
     selected: {
       true: {
-        background: vars.color.primary[50],
-        borderColor: vars.color.primary[600],
-        color: vars.color.primary[800],
+        background: 'rgba(59, 130, 246, 0.2)',
+        borderColor: 'rgba(59, 130, 246, 0.4)',
+        color: '#93c5fd',
         fontWeight: vars.font.weight.medium,
       },
       false: {
-        background: vars.color.bg.surface,
-        borderColor: vars.color.border.default,
+        background: 'rgba(255, 255, 255, 0.06)',
+        borderColor: 'rgba(255, 255, 255, 0.12)',
         color: vars.color.text.secondary,
       },
     },
@@ -46,8 +46,8 @@ export const tag = recipe({
      */
     disabled: {
       true: {
-        background: vars.color.bg.disabled,
-        borderColor: vars.color.border.subtle,
+        background: 'rgba(255, 255, 255, 0.03)',
+        borderColor: 'rgba(255, 255, 255, 0.06)',
         color: vars.color.text.muted,
         cursor: 'not-allowed',
       },
@@ -81,7 +81,7 @@ export const removeButton = style({
   flexShrink: 0,
 
   ':hover': {
-    background: vars.color.bg.subtle,
+    background: 'rgba(255, 255, 255, 0.08)',
   },
 
   ':disabled': {

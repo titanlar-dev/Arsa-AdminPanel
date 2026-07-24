@@ -29,50 +29,50 @@ export const badge = recipe({
     tone: {
       neutral: {
         vars: {
-          [toneSubtle]: vars.color.neutral[100],
+          [toneSubtle]: 'rgba(148, 163, 184, 0.15)',
           [toneStrong]: vars.color.neutral[700],
-          [toneText]: vars.color.neutral[800],
-          [toneBorder]: vars.color.neutral[400],
+          [toneText]: '#cbd5e1',
+          [toneBorder]: 'rgba(148, 163, 184, 0.4)',
         },
       },
       primary: {
         vars: {
-          [toneSubtle]: vars.color.primary[50],
+          [toneSubtle]: 'rgba(99, 102, 241, 0.15)',
           [toneStrong]: vars.color.primary[700],
-          [toneText]: vars.color.primary[800],
-          [toneBorder]: vars.color.primary[600],
+          [toneText]: '#a5b4fc',
+          [toneBorder]: 'rgba(99, 102, 241, 0.4)',
         },
       },
       success: {
         vars: {
-          [toneSubtle]: vars.color.success[50],
+          [toneSubtle]: 'rgba(34, 197, 94, 0.15)',
           [toneStrong]: vars.color.success[700],
-          [toneText]: vars.color.success[800],
-          [toneBorder]: vars.color.success[600],
+          [toneText]: '#86efac',
+          [toneBorder]: 'rgba(34, 197, 94, 0.4)',
         },
       },
       warning: {
         vars: {
-          [toneSubtle]: vars.color.warning[50],
+          [toneSubtle]: 'rgba(234, 179, 8, 0.15)',
           [toneStrong]: vars.color.warning[700],
-          [toneText]: vars.color.warning[800],
-          [toneBorder]: vars.color.warning[600],
+          [toneText]: '#fde047',
+          [toneBorder]: 'rgba(234, 179, 8, 0.4)',
         },
       },
       danger: {
         vars: {
-          [toneSubtle]: vars.color.danger[50],
+          [toneSubtle]: 'rgba(239, 68, 68, 0.15)',
           [toneStrong]: vars.color.danger[700],
-          [toneText]: vars.color.danger[800],
-          [toneBorder]: vars.color.danger[600],
+          [toneText]: '#fca5a5',
+          [toneBorder]: 'rgba(239, 68, 68, 0.4)',
         },
       },
       info: {
         vars: {
-          [toneSubtle]: vars.color.info[50],
+          [toneSubtle]: 'rgba(59, 130, 246, 0.15)',
           [toneStrong]: vars.color.info[700],
-          [toneText]: vars.color.info[800],
-          [toneBorder]: vars.color.info[600],
+          [toneText]: '#93c5fd',
+          [toneBorder]: 'rgba(59, 130, 246, 0.4)',
         },
       },
     },

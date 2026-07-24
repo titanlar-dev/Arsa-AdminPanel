@@ -7,23 +7,27 @@ export const group = recipe({
     display: 'flex',
     alignItems: 'stretch',
     width: '100%',
-    background: vars.color.bg.surface,
+    background: 'rgba(255, 255, 255, 0.06)',
     border: '1px solid',
-    borderColor: vars.color.border.default,
-    borderRadius: vars.radius.md,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    borderRadius: '8px',
     overflow: 'hidden',
-    transitionProperty: 'border-color',
+    transitionProperty: 'border-color, box-shadow',
     transitionDuration: vars.duration.fast,
 
     selectors: {
-      '&:focus-within': { borderColor: vars.color.focus.ring },
+      '&:hover:not([data-disabled])': { borderColor: 'rgba(255, 255, 255, 0.15)' },
+      '&:focus-within': {
+        borderColor: 'rgba(129, 140, 248, 0.5)',
+        boxShadow: '0 0 0 3px rgba(129, 140, 248, 0.12)',
+      },
       '&[data-invalid]': { borderColor: vars.color.danger[600] },
       '&[data-validation-state="warning"]': { borderColor: vars.color.warning[600] },
       '&[data-validation-state="success"]': { borderColor: vars.color.success[600] },
       '&[data-validation-state="validating"]': { borderColor: vars.color.info[600] },
       '&[data-disabled]': {
-        background: vars.color.bg.disabled,
-        borderColor: vars.color.border.subtle,
+        background: 'rgba(255, 255, 255, 0.03)',
+        borderColor: 'rgba(255, 255, 255, 0.06)',
       },
     },
   },
@@ -69,12 +73,12 @@ export const stepper = style({
   width: '2.5rem',
   padding: 0,
   border: 'none',
-  borderInlineStart: `1px solid ${vars.color.border.subtle}`,
+  borderInlineStart: '1px solid rgba(255, 255, 255, 0.08)',
   background: 'transparent',
   color: vars.color.text.secondary,
   cursor: 'pointer',
 
-  ':hover': { background: vars.color.bg.subtle },
+  ':hover': { background: 'rgba(255, 255, 255, 0.06)' },
 
   selectors: {
     '&[data-disabled]': {

@@ -21,7 +21,7 @@ export const track = recipe({
     alignItems: 'center',
     flexShrink: 0,
     padding: '2px',
-    background: vars.color.neutral[400],
+    background: 'rgba(255, 255, 255, 0.12)',
     border: 'none',
     borderRadius: vars.radius.full,
     cursor: 'inherit',
@@ -30,9 +30,9 @@ export const track = recipe({
     transitionTimingFunction: vars.ease.standard,
 
     selectors: {
-      '&[data-checked]': { background: vars.color.primary[700] },
-      '&[data-disabled]': { background: vars.color.bg.disabled },
-      '&[data-disabled][data-checked]': { background: vars.color.neutral[400] },
+      '&[data-checked]': { background: 'rgba(59, 130, 246, 0.6)' },
+      '&[data-disabled]': { background: 'rgba(255, 255, 255, 0.06)' },
+      '&[data-disabled][data-checked]': { background: 'rgba(255, 255, 255, 0.10)' },
     },
   },
 
@@ -49,7 +49,7 @@ export const track = recipe({
 export const thumb = recipe({
   base: {
     display: 'block',
-    background: vars.color.neutral[0],
+    background: '#f1f5f9',
     borderRadius: vars.radius.full,
     boxShadow: vars.shadow.sm,
     transitionProperty: 'transform',

@@ -47,11 +47,11 @@ export const list = recipe({
         /** Sekme sayısı taşarsa erişilebilir yatay kaydırma; kesilmez. */
         overflowX: 'auto',
         scrollbarWidth: 'thin',
-        borderBlockEnd: `1px solid ${vars.color.border.subtle}`,
+        borderBlockEnd: '1px solid rgba(255, 255, 255, 0.08)',
       },
       vertical: {
         flexDirection: 'column',
-        borderInlineEnd: `1px solid ${vars.color.border.subtle}`,
+        borderInlineEnd: '1px solid rgba(255, 255, 255, 0.08)',
         minWidth: '12rem',
       },
     },
@@ -62,7 +62,7 @@ export const list = recipe({
         borderBlockEnd: 'none',
         borderInlineEnd: 'none',
         padding: vars.space[1],
-        background: vars.color.bg.subtle,
+        background: 'rgba(255, 255, 255, 0.06)',
         borderRadius: vars.radius.md,
       },
     },
@@ -102,8 +102,8 @@ export const tab = recipe({
         marginBlockEnd: '-1px',
         selectors: {
           '&[data-selected]': {
-            color: vars.color.primary[700],
-            borderBlockEndColor: vars.color.primary[700],
+            color: '#93c5fd',
+            borderBlockEndColor: '#3b82f6',
           },
         },
       },
@@ -111,8 +111,8 @@ export const tab = recipe({
         borderRadius: vars.radius.full,
         selectors: {
           '&[data-selected]': {
-            background: vars.color.primary[50],
-            color: vars.color.primary[800],
+            background: 'rgba(59, 130, 246, 0.2)',
+            color: '#93c5fd',
           },
         },
       },
@@ -120,7 +120,7 @@ export const tab = recipe({
         borderRadius: vars.radius.sm,
         selectors: {
           '&[data-selected]': {
-            background: vars.color.bg.surface,
+            background: 'rgba(255, 255, 255, 0.08)',
             color: vars.color.text.primary,
             boxShadow: vars.shadow.xs,
           },
@@ -138,15 +138,15 @@ export const badge = style({
   justifyContent: 'center',
   minWidth: '1.25rem',
   paddingInline: vars.space[1],
-  background: vars.color.neutral[200],
+  background: 'rgba(255, 255, 255, 0.10)',
   borderRadius: vars.radius.full,
   fontSize: vars.font.size.sm,
   fontVariantNumeric: 'tabular-nums',
 
   selectors: {
     '[data-selected] &': {
-      background: vars.color.primary[100],
-      color: vars.color.primary[800],
+      background: 'rgba(59, 130, 246, 0.2)',
+      color: '#93c5fd',
     },
   },
 })

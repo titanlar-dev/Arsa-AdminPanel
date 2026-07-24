@@ -25,7 +25,7 @@ export const root = recipe({
 })
 
 export const summary = style({
-  color: vars.color.text.muted,
+  color: 'rgba(255, 255, 255, 0.45)',
   fontSize: vars.font.size.sm,
   fontVariantNumeric: 'tabular-nums',
 })
@@ -60,10 +60,10 @@ export const pageButton = style({
   minWidth: vars.control.height.sm,
   height: vars.control.height.sm,
   paddingInline: vars.space[2],
-  border: '1px solid transparent',
+  border: '1px solid rgba(255, 255, 255, 0.08)',
   borderRadius: vars.radius.md,
   background: 'transparent',
-  color: vars.color.text.secondary,
+  color: 'rgba(255, 255, 255, 0.6)',
   fontSize: vars.font.size.sm,
   fontWeight: vars.font.weight.medium,
   fontVariantNumeric: 'tabular-nums',
@@ -74,8 +74,8 @@ export const pageButton = style({
 
   selectors: {
     '&:hover:not(:disabled)': {
-      background: vars.color.action.ghost.hover,
-      color: vars.color.text.primary,
+      background: 'rgba(255, 255, 255, 0.06)',
+      color: 'rgba(255, 255, 255, 0.9)',
     },
 
     /**
@@ -83,14 +83,14 @@ export const pageButton = style({
      * olur: tek başına renk gösterge değildir.
      */
     '&[aria-current="page"]': {
-      background: vars.color.action.primary.bg,
-      borderColor: vars.color.action.primary.bg,
-      color: vars.color.action.primary.text,
+      background: 'rgba(99, 102, 241, 0.2)',
+      borderColor: 'rgba(99, 102, 241, 0.4)',
+      color: '#c7d2fe',
       fontWeight: vars.font.weight.semibold,
     },
 
     '&:disabled': {
-      color: vars.color.text.disabled,
+      color: 'rgba(255, 255, 255, 0.25)',
       cursor: 'not-allowed',
     },
   },
@@ -101,12 +101,12 @@ export const ellipsis = style({
   alignItems: 'center',
   justifyContent: 'center',
   minWidth: vars.space[6],
-  color: vars.color.text.disabled,
+  color: 'rgba(255, 255, 255, 0.25)',
   userSelect: 'none',
 })
 
 export const compactLabel = style({
-  color: vars.color.text.primary,
+  color: 'rgba(255, 255, 255, 0.82)',
   fontSize: vars.font.size.sm,
   fontVariantNumeric: 'tabular-nums',
   whiteSpace: 'nowrap',

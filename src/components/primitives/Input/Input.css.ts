@@ -9,18 +9,22 @@ export const control = recipe({
     alignItems: 'center',
     gap: vars.space[2],
     width: '100%',
-    background: vars.color.bg.surface,
+    background: 'rgba(255, 255, 255, 0.06)',
     border: '1px solid',
-    borderColor: vars.color.border.default,
-    borderRadius: vars.radius.md,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    borderRadius: '8px',
     color: vars.color.text.primary,
     transitionProperty: 'border-color, box-shadow',
     transitionDuration: vars.duration.fast,
     transitionTimingFunction: vars.ease.standard,
 
     selectors: {
+      '&:hover:not([data-disabled])': {
+        borderColor: 'rgba(255, 255, 255, 0.15)',
+      },
       '&:focus-within': {
-        borderColor: vars.color.focus.ring,
+        borderColor: 'rgba(129, 140, 248, 0.5)',
+        boxShadow: '0 0 0 3px rgba(129, 140, 248, 0.12)',
       },
       /** Hata durumu yalnız renkle değil, kenarlık kalınlığıyla da belli olur. */
       '&[data-invalid]': {
@@ -36,8 +40,8 @@ export const control = recipe({
         borderColor: vars.color.info[600],
       },
       '&[data-disabled]': {
-        background: vars.color.bg.disabled,
-        borderColor: vars.color.border.subtle,
+        background: 'rgba(255, 255, 255, 0.03)',
+        borderColor: 'rgba(255, 255, 255, 0.06)',
         color: vars.color.text.disabled,
         cursor: 'not-allowed',
       },
@@ -76,7 +80,7 @@ export const input = style({
   },
 
   '::placeholder': {
-    color: vars.color.text.muted,
+    color: 'rgba(255, 255, 255, 0.35)',
   },
 
   selectors: {

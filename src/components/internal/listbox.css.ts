@@ -13,27 +13,31 @@ export const trigger = recipe({
     alignItems: 'center',
     gap: vars.space[2],
     width: '100%',
-    background: vars.color.bg.surface,
+    background: 'rgba(255, 255, 255, 0.06)',
     border: '1px solid',
-    borderColor: vars.color.border.default,
-    borderRadius: vars.radius.md,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    borderRadius: '8px',
     color: vars.color.text.primary,
     fontSize: vars.font.size.sm,
     lineHeight: vars.lineHeight.tight,
     textAlign: 'start',
     cursor: 'pointer',
-    transitionProperty: 'border-color',
+    transitionProperty: 'border-color, box-shadow',
     transitionDuration: vars.duration.fast,
 
     selectors: {
-      '&:focus-visible, &:focus-within': { borderColor: vars.color.focus.ring },
+      '&:hover:not([data-disabled])': { borderColor: 'rgba(255, 255, 255, 0.15)' },
+      '&:focus-visible, &:focus-within': {
+        borderColor: 'rgba(129, 140, 248, 0.5)',
+        boxShadow: '0 0 0 3px rgba(129, 140, 248, 0.12)',
+      },
       '&[data-invalid]': { borderColor: vars.color.danger[600] },
       '&[data-validation-state="warning"]': { borderColor: vars.color.warning[600] },
       '&[data-validation-state="success"]': { borderColor: vars.color.success[600] },
       '&[data-validation-state="validating"]': { borderColor: vars.color.info[600] },
       '&[data-disabled]': {
-        background: vars.color.bg.disabled,
-        borderColor: vars.color.border.subtle,
+        background: 'rgba(255, 255, 255, 0.03)',
+        borderColor: 'rgba(255, 255, 255, 0.06)',
         color: vars.color.text.disabled,
         cursor: 'not-allowed',
       },
@@ -61,7 +65,7 @@ export const value = style({
 
 /** Seçim yokken placeholder soluk gösterilir; etiket yerine geçmez. */
 export const placeholder = style({
-  color: vars.color.text.muted,
+  color: 'rgba(255, 255, 255, 0.35)',
 })
 
 export const icon = style({
@@ -80,8 +84,10 @@ export const popup = style({
   minWidth: 'var(--anchor-width)',
   overflowY: 'auto',
   padding: vars.space[1],
-  background: vars.color.bg.elevated,
-  border: `1px solid ${vars.color.border.subtle}`,
+  background: 'rgba(15, 23, 42, 0.92)',
+  backdropFilter: 'blur(24px)',
+  WebkitBackdropFilter: 'blur(24px)',
+  border: '1px solid rgba(255, 255, 255, 0.10)',
   borderRadius: vars.radius.md,
   boxShadow: vars.shadow.lg,
   outline: 'none',
@@ -102,7 +108,7 @@ export const item = style({
   outline: 'none',
 
   selectors: {
-    '&[data-highlighted]': { background: vars.color.bg.subtle },
+    '&[data-highlighted]': { background: 'rgba(255, 255, 255, 0.08)' },
     '&[data-selected]': { fontWeight: vars.font.weight.medium },
     '&[data-disabled]': { color: vars.color.text.disabled, cursor: 'not-allowed' },
   },
@@ -123,7 +129,7 @@ export const itemDescription = style({
 export const itemIndicator = style({
   display: 'inline-flex',
   flexShrink: 0,
-  color: vars.color.primary[700],
+  color: '#93c5fd',
 })
 
 export const empty = style({
@@ -151,7 +157,7 @@ export const searchInput = style({
   color: vars.color.text.primary,
   fontSize: vars.font.size.sm,
   ':focus': { outline: 'none' },
-  '::placeholder': { color: vars.color.text.muted },
+  '::placeholder': { color: 'rgba(255, 255, 255, 0.35)' },
 })
 
 export const chips = style({
@@ -168,10 +174,10 @@ export const chip = style({
   gap: vars.space[1],
   paddingInline: vars.space[2],
   paddingBlock: '0.125rem',
-  background: vars.color.primary[50],
-  border: `1px solid ${vars.color.primary[200]}`,
+  background: 'rgba(59, 130, 246, 0.2)',
+  border: '1px solid rgba(59, 130, 246, 0.3)',
   borderRadius: vars.radius.sm,
-  color: vars.color.primary[800],
+  color: '#93c5fd',
   fontSize: vars.font.size.sm,
 })
 

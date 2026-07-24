@@ -1,6 +1,7 @@
 import { globalStyle } from '@vanilla-extract/css'
 import { vars } from './contract.css'
 import './themes.css'
+import './dark-overrides.css'
 
 /** Global reset ve temel tipografi — brifing 4.3. */
 

@@ -5,14 +5,17 @@ import { vars } from '@/tokens/contract.css'
 export const wrapper = recipe({
   base: {
     width: '100%',
-    background: vars.color.bg.surface,
-    borderRadius: '8px',
+    background: 'rgba(255, 255, 255, 0.03)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: '12px',
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+    overflow: 'hidden',
   },
   variants: {
     visualStyle: {
       plain: {},
-      bordered: { border: `1px solid ${vars.color.border.subtle}`, borderRadius: '10px', overflow: 'hidden' },
-      striped: { border: `1px solid ${vars.color.border.subtle}`, borderRadius: '10px', overflow: 'hidden' },
+      bordered: {},
+      striped: {},
     },
   },
   defaultVariants: { visualStyle: 'plain' },
@@ -33,7 +36,7 @@ export const table = style({
 
 export const thead = recipe({
   base: {
-    background: 'transparent',
+    background: 'rgba(255, 255, 255, 0.04)',
   },
   variants: {
     sticky: {
@@ -46,19 +49,19 @@ export const thead = recipe({
 
 export const th = recipe({
   base: {
-    borderBlockEnd: `1px solid ${vars.color.border.subtle}`,
-    color: vars.color.text.secondary,
-    fontWeight: vars.font.weight.medium,
-    fontSize: '0.75rem',
-    letterSpacing: '0.02em',
+    borderBlockEnd: '1px solid rgba(255, 255, 255, 0.06)',
+    color: 'rgba(255, 255, 255, 0.55)',
+    fontWeight: 500,
+    fontSize: '0.6875rem',
+    letterSpacing: '0.06em',
     textTransform: 'uppercase',
     whiteSpace: 'nowrap',
     textAlign: 'start',
   },
   variants: {
     density: {
-      comfortable: { padding: `${vars.space[2]} ${vars.space[3]}` },
-      compact: { padding: `${vars.space[1]} ${vars.space[2]}` },
+      comfortable: { padding: '0.625rem 0.75rem' },
+      compact: { padding: '0.375rem 0.5rem' },
     },
     align: {
       start: { textAlign: 'start' },
@@ -82,7 +85,7 @@ export const sortButton = style({
   fontWeight: 'inherit',
   cursor: 'pointer',
 
-  ':hover': { color: vars.color.text.primary },
+  ':hover': { color: 'rgba(255, 255, 255, 0.9)' },
 })
 
 /** Aktif olmayan sıralama oku soluk: hangi sütunun sıralandığı belli olsun. */
@@ -91,21 +94,21 @@ export const sortIcon = style({
   flexShrink: 0,
 
   selectors: {
-    '[data-sorted] &': { opacity: 1, color: vars.color.primary[700] },
+    '[data-sorted] &': { opacity: 1, color: '#818cf8' },
   },
 })
 
 export const tr = recipe({
   base: {
-    borderBlockEnd: `1px solid ${vars.color.border.subtle}`,
+    borderBlockEnd: '1px solid rgba(255, 255, 255, 0.04)',
     transition: 'background-color 0.12s ease',
 
     selectors: {
       '&:last-child': { borderBlockEnd: 'none' },
-      '&[data-clickable]:hover': { background: vars.color.table.rowHover, cursor: 'pointer' },
+      '&[data-clickable]:hover': { background: 'rgba(99, 102, 241, 0.06)', cursor: 'pointer' },
       '&[data-selected]': {
-        background: vars.color.selection.bg,
-        boxShadow: `inset 2px 0 0 ${vars.color.primary[700]}`,
+        background: 'rgba(99, 102, 241, 0.10)',
+        boxShadow: 'inset 2px 0 0 #818cf8',
       },
     },
   },
@@ -113,7 +116,7 @@ export const tr = recipe({
     striped: {
       true: {
         selectors: {
-          '&:nth-child(even):not([data-selected])': { background: vars.color.bg.subtle },
+          '&:nth-child(even):not([data-selected])': { background: 'rgba(255, 255, 255, 0.02)' },
         },
       },
       false: {},
@@ -124,13 +127,14 @@ export const tr = recipe({
 
 export const td = recipe({
   base: {
-    color: vars.color.text.primary,
+    color: 'rgba(255, 255, 255, 0.82)',
+    fontSize: '0.8125rem',
     verticalAlign: 'middle',
   },
   variants: {
     density: {
-      comfortable: { padding: `${vars.space[2]} ${vars.space[3]}` },
-      compact: { padding: `${vars.space[1]} ${vars.space[2]}` },
+      comfortable: { padding: '0.625rem 0.75rem' },
+      compact: { padding: '0.375rem 0.5rem' },
     },
     align: {
       start: { textAlign: 'start' },
@@ -215,7 +219,7 @@ export const cardRow = style({
 
   selectors: {
     '&[data-selected]': {
-      outline: `2px solid ${vars.color.primary[700]}`,
+      outline: '2px solid #818cf8',
       outlineOffset: '2px',
       borderRadius: vars.radius.lg,
     },
@@ -248,7 +252,7 @@ export const toolbar = style({
 /** İki seçenekli yoğunluk anahtarı (rahat/sıkışık). Segmented görünüm. */
 export const segmented = style({
   display: 'inline-flex',
-  border: `1px solid ${vars.color.action.secondary.border}`,
+  border: '1px solid rgba(255, 255, 255, 0.08)',
   borderRadius: vars.radius.md,
   overflow: 'hidden',
 })
@@ -262,8 +266,8 @@ export const segmentButton = recipe({
     minHeight: vars.control.height.sm,
     paddingInline: vars.space[3],
     border: 'none',
-    background: vars.color.action.secondary.bg,
-    color: vars.color.action.secondary.text,
+    background: 'rgba(255, 255, 255, 0.04)',
+    color: 'rgba(255, 255, 255, 0.6)',
     fontSize: vars.font.size.sm,
     fontWeight: vars.font.weight.medium,
     cursor: 'pointer',
@@ -272,16 +276,16 @@ export const segmentButton = recipe({
     transitionDuration: vars.duration.fast,
 
     selectors: {
-      '& + &': { borderInlineStart: `1px solid ${vars.color.action.secondary.border}` },
-      '&:hover:not([aria-pressed="true"])': { background: vars.color.action.secondary.hover },
+      '& + &': { borderInlineStart: '1px solid rgba(255, 255, 255, 0.08)' },
+      '&:hover:not([aria-pressed="true"])': { background: 'rgba(255, 255, 255, 0.08)' },
     },
   },
   variants: {
     active: {
       /** Seçili yoğunluk: primary zeminle işaretlenir — renk tek gösterge değil, `aria-pressed` de var. */
       true: {
-        background: vars.color.action.primary.bg,
-        color: vars.color.action.primary.text,
+        background: 'rgba(99, 102, 241, 0.2)',
+        color: '#c7d2fe',
       },
       false: {},
     },
@@ -307,8 +311,8 @@ export const sortOrder = style({
   paddingInline: '0.25rem',
   marginInlineStart: vars.space[1],
   borderRadius: vars.radius.full,
-  background: vars.color.primary[700],
-  color: vars.color.neutral[0],
+  background: '#6366f1',
+  color: '#ffffff',
   fontSize: '0.6875rem',
   fontWeight: vars.font.weight.semibold,
   fontVariantNumeric: 'tabular-nums',
@@ -321,13 +325,13 @@ export const sortOrder = style({
  * başlıkla aynı ki filtre alanı başlığın parçası gibi okunsun.
  */
 export const filterRow = style({
-  background: vars.color.bg.subtle,
+  background: 'rgba(255, 255, 255, 0.03)',
 })
 
 export const filterCell = style({
   paddingInline: vars.space[2],
   paddingBlock: vars.space[2],
-  borderBlockEnd: `1px solid ${vars.color.border.default}`,
+  borderBlockEnd: '1px solid rgba(255, 255, 255, 0.06)',
   verticalAlign: 'middle',
 })
 
@@ -345,9 +349,9 @@ export const selectAllBanner = style({
   flexWrap: 'wrap',
   gap: vars.space[1],
   padding: `${vars.space[2]} ${vars.space[4]}`,
-  background: vars.color.primary[50],
-  borderBlockEnd: `1px solid ${vars.color.primary[200]}`,
-  color: vars.color.text.primary,
+  background: 'rgba(99, 102, 241, 0.08)',
+  borderBlockEnd: '1px solid rgba(99, 102, 241, 0.2)',
+  color: 'rgba(255, 255, 255, 0.82)',
   fontSize: vars.font.size.sm,
   textAlign: 'center',
 
@@ -368,7 +372,7 @@ export const selectAllBannerLink = style({
   padding: 0,
   border: 'none',
   background: 'transparent',
-  color: vars.color.primary[700],
+  color: '#a5b4fc',
   fontSize: 'inherit',
   fontWeight: vars.font.weight.semibold,
   cursor: 'pointer',
@@ -376,11 +380,11 @@ export const selectAllBannerLink = style({
   textUnderlineOffset: '2px',
 
   ':hover': {
-    color: vars.color.primary[900],
+    color: '#c7d2fe',
   },
 
   ':focus-visible': {
-    outline: `2px solid ${vars.color.primary[700]}`,
+    outline: '2px solid #818cf8',
     outlineOffset: '2px',
     borderRadius: vars.radius.sm,
   },
@@ -458,7 +462,7 @@ export const filterButton = recipe({
     padding: '2px',
     border: 'none',
     background: 'transparent',
-    color: vars.color.text.secondary,
+    color: 'rgba(255, 255, 255, 0.5)',
     cursor: 'pointer',
     borderRadius: vars.radius.sm,
     opacity: 0.45,
@@ -467,12 +471,12 @@ export const filterButton = recipe({
 
     ':hover': {
       opacity: 1,
-      color: vars.color.text.primary,
-      background: vars.color.bg.subtle,
+      color: 'rgba(255, 255, 255, 0.9)',
+      background: 'rgba(255, 255, 255, 0.06)',
     },
 
     ':focus-visible': {
-      outline: `2px solid ${vars.color.primary[700]}`,
+      outline: '2px solid #818cf8',
       outlineOffset: '1px',
       opacity: 1,
     },
@@ -481,8 +485,8 @@ export const filterButton = recipe({
     active: {
       true: {
         opacity: 1,
-        color: vars.color.primary[700],
-        background: vars.color.primary[50],
+        color: '#a5b4fc',
+        background: 'rgba(99, 102, 241, 0.12)',
       },
       false: {},
     },
@@ -521,7 +525,7 @@ export const columnFilterPopover = style({
     `0 8px 32px rgba(0, 0, 0, 0.35)`,
     `0 2px 8px rgba(0, 0, 0, 0.2)`,
   ].join(', '),
-  color: vars.color.text.primary,
+  color: 'rgba(255, 255, 255, 0.82)',
   fontSize: vars.font.size.sm,
 
   animation: `${popoverIn} 0.18s ease-out`,
@@ -593,10 +597,10 @@ export const popoverButton = recipe({
   variants: {
     variant: {
       primary: {
-        background: vars.color.primary[700],
-        color: vars.color.neutral[0],
+        background: '#6366f1',
+        color: '#ffffff',
         border: 'none',
-        ':hover': { background: vars.color.primary[900] },
+        ':hover': { background: '#4f46e5' },
       },
       ghost: {
         background: 'transparent',

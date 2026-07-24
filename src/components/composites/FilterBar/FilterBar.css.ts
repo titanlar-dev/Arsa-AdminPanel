@@ -12,15 +12,19 @@ export const root = recipe({
     variant: {
       inline: {
         padding: vars.space[4],
-        background: vars.color.bg.surface,
-        border: `1px solid ${vars.color.border.subtle}`,
-        borderRadius: vars.radius.lg,
+        background: 'rgba(255, 255, 255, 0.04)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '12px',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
       },
       stacked: {
         padding: vars.space[4],
-        background: vars.color.bg.surface,
-        border: `1px solid ${vars.color.border.subtle}`,
-        borderRadius: vars.radius.lg,
+        background: 'rgba(255, 255, 255, 0.04)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '12px',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
       },
       /** Drawer içinde kendi kabı ve kenarlığı yok; kap zaten Drawer'ın gövdesi. */
       drawer: {},
@@ -38,8 +42,10 @@ export const header = style({
 })
 
 export const heading = style({
-  color: vars.color.text.primary,
-  fontSize: vars.font.size.sm,
+  color: 'rgba(255, 255, 255, 0.7)',
+  fontSize: '0.75rem',
+  letterSpacing: '0.05em',
+  textTransform: 'uppercase',
   fontWeight: vars.font.weight.semibold,
 })
 
@@ -96,7 +102,7 @@ export const rangeGroup = style({
 export const rangeLegend = style({
   padding: 0,
   marginBlockEnd: vars.space[1],
-  color: vars.color.text.secondary,
+  color: 'rgba(255, 255, 255, 0.55)',
   fontSize: vars.font.size.sm,
   fontWeight: vars.font.weight.medium,
 })

@@ -24,34 +24,34 @@ export const alert = recipe({
     tone: {
       success: {
         vars: {
-          [toneSubtle]: vars.color.success[50],
+          [toneSubtle]: 'rgba(34, 197, 94, 0.12)',
           [toneStrong]: vars.color.success[700],
-          [toneText]: vars.color.success[800],
-          [toneBorder]: vars.color.success[600],
+          [toneText]: '#86efac',
+          [toneBorder]: 'rgba(34, 197, 94, 0.25)',
         },
       },
       warning: {
         vars: {
-          [toneSubtle]: vars.color.warning[50],
+          [toneSubtle]: 'rgba(234, 179, 8, 0.12)',
           [toneStrong]: vars.color.warning[700],
-          [toneText]: vars.color.warning[800],
-          [toneBorder]: vars.color.warning[600],
+          [toneText]: '#fde047',
+          [toneBorder]: 'rgba(234, 179, 8, 0.25)',
         },
       },
       danger: {
         vars: {
-          [toneSubtle]: vars.color.danger[50],
+          [toneSubtle]: 'rgba(239, 68, 68, 0.12)',
           [toneStrong]: vars.color.danger[700],
-          [toneText]: vars.color.danger[800],
-          [toneBorder]: vars.color.danger[600],
+          [toneText]: '#fca5a5',
+          [toneBorder]: 'rgba(239, 68, 68, 0.25)',
         },
       },
       info: {
         vars: {
-          [toneSubtle]: vars.color.info[50],
+          [toneSubtle]: 'rgba(59, 130, 246, 0.12)',
           [toneStrong]: vars.color.info[700],
-          [toneText]: vars.color.info[800],
-          [toneBorder]: vars.color.info[600],
+          [toneText]: '#93c5fd',
+          [toneBorder]: 'rgba(59, 130, 246, 0.25)',
         },
       },
     },
@@ -67,7 +67,7 @@ export const alert = recipe({
         borderColor: toneBorder,
       },
       outline: {
-        background: vars.color.bg.surface,
+        background: 'rgba(255, 255, 255, 0.04)',
         color: toneText,
         borderColor: toneBorder,
       },
