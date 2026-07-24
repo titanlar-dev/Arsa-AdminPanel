@@ -10,7 +10,8 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {
+/** Konut ilani - tum konut alanlarini gosterir (lst-001). */
+export const ResidentialListing: Story = {
   decorators: [
     (Story) => (
       <MemoryRouter initialEntries={['/listings/lst-001']}>
@@ -22,6 +23,46 @@ export const Default: Story = {
   ],
 }
 
+/** Arsa ilani - arsa-ozel alanlari gosterir (lst-009). */
+export const LandListing: Story = {
+  decorators: [
+    (Story) => (
+      <MemoryRouter initialEntries={['/listings/lst-009']}>
+        <Routes>
+          <Route path="/listings/:id" element={<Story />} />
+        </Routes>
+      </MemoryRouter>
+    ),
+  ],
+}
+
+/** Isyeri ilani - ticari alanlari gosterir (lst-013). */
+export const CommercialListing: Story = {
+  decorators: [
+    (Story) => (
+      <MemoryRouter initialEntries={['/listings/lst-013']}>
+        <Routes>
+          <Route path="/listings/:id" element={<Story />} />
+        </Routes>
+      </MemoryRouter>
+    ),
+  ],
+}
+
+/** Reddedilmis ilan - red gerekceleri ve moderasyon notu (lst-005). */
+export const RejectedListing: Story = {
+  decorators: [
+    (Story) => (
+      <MemoryRouter initialEntries={['/listings/lst-005']}>
+        <Routes>
+          <Route path="/listings/:id" element={<Story />} />
+        </Routes>
+      </MemoryRouter>
+    ),
+  ],
+}
+
+/** 404 durumu - bulunamayan ilan. */
 export const NotFound: Story = {
   decorators: [
     (Story) => (
