@@ -1,70 +1,44 @@
-import { useState } from 'react'
-import {
-  AdminPermission,
-  AdminRole,
-  ROLE_PERMISSIONS,
-  type ISODateTime,
-  type Listing,
-  type ListingReport,
-  type Paginated,
-  type UserAccount,
-} from '../types/domain'
-import type { ReportFilterValues } from '../types/component-props'
-import {
-  adminUserFixtures,
-  allListingFixtures,
-  allReportFixtures,
-  allUserFixtures,
-} from '../fixtures'
-import { ReportManagementPage } from '../screens/ReportManagementPage/ReportManagementPage'
+import * as css from './ReportsPage.css'
 
-const KULLANICILAR: Record<string, UserAccount> = Object.fromEntries(
-  [...allUserFixtures, ...adminUserFixtures].map((u): [string, UserAccount] => [u.id, u]),
-)
+const STATS = [
+  { label: 'Acik', value: 3 },
+  { label: 'Inceleniyor', value: 2 },
+  { label: 'Cozulmus', value: 15 },
+]
 
-const ILANLAR: Record<string, Listing> = Object.fromEntries(
-  allListingFixtures.map((ilan): [string, Listing] => [ilan.id, ilan]),
-)
-
-const BOS_FILTRELER: ReportFilterValues = {
-  reasons: [],
-  statuses: [],
-  severities: [],
-  dateRange: {},
-}
-
-const SIMDI: ISODateTime = '2026-07-16T10:00:00+03:00'
-
-function sayfa(items: ListingReport[]): Paginated<ListingReport> {
-  return {
-    items,
-    page: 1,
-    pageSize: 20,
-    totalItems: items.length,
-    totalPages: Math.max(1, Math.ceil(items.length / 20)),
-  }
-}
-
-const TAM_YETKI: AdminPermission[] = [...ROLE_PERMISSIONS[AdminRole.SuperAdmin]]
+const REPORTS = [
+  { id: 1, severity: '#ef4444', desc: 'Sahte belge suphesi: Gebze Sanayi Deposu ilani', date: '22 Tem 2026' },
+  { id: 2, severity: '#f59e0b', desc: 'Yaniltici fiyat bilgisi: Kadikoy 3+1 Daire', date: '21 Tem 2026' },
+  { id: 3, severity: '#ef4444', desc: 'Hakaret iceren ilan aciklamasi: Cesme Yazlik', date: '21 Tem 2026' },
+  { id: 4, severity: '#3b82f6', desc: 'Yinelenen ilan bildirimi: Konyaalti Villa', date: '20 Tem 2026' },
+  { id: 5, severity: '#3b82f6', desc: 'Yanlis kategori secimi: Ankara Ofis Kati', date: '19 Tem 2026' },
+]
 
 export function ReportsPage() {
-  const [filters, setFilters] = useState<ReportFilterValues>(BOS_FILTRELER)
-
   return (
-    <ReportManagementPage
-      state={{ status: 'success', data: sayfa(allReportFixtures) }}
-      filters={filters}
-      availablePermissions={TAM_YETKI}
-      now={SIMDI}
-      usersById={KULLANICILAR}
-      listingsById={ILANLAR}
-      onFiltersChange={setFilters}
-      onPageChange={() => {}}
-      onReportOpen={() => {}}
-      onResolve={() => {}}
-      onDismiss={() => {}}
-      onEscalate={() => {}}
-      onRetry={() => {}}
-    />
+    <div className={css.root}>
+      <h1 className={css.title}>Sikayetler</h1>
+
+      <div className={css.statsRow}>
+        {STATS.map((s) => (
+          <div key={s.label} className={css.statCard}>
+            <span className={css.statLabel}>{s.label}</span>
+            <span className={css.statValue}>{s.value}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className={css.list}>
+        {REPORTS.map((r) => (
+          <div key={r.id} className={css.item}>
+            <span className={css.dot} style={{ background: r.severity }} />
+            <div className={css.content}>
+              <span className={css.desc}>{r.desc}</span>
+              <span className={css.date}>{r.date}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }

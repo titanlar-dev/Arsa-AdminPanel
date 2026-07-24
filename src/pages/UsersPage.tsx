@@ -1,43 +1,49 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
-import {
-  AdminPermission,
-  AdminRole,
-  ROLE_PERMISSIONS,
-  type Paginated,
-  type UserAccount,
-} from '../types/domain'
-import type { UserFilterValues } from '../types/component-props'
-import { allUserFixtures } from '../fixtures'
-import { UserManagementPage } from '../screens/UserManagementPage/UserManagementPage'
+import * as css from './UsersPage.css'
 
-const KULLANICI_SAYFASI: Paginated<UserAccount> = {
-  items: allUserFixtures,
-  page: 1,
-  pageSize: 10,
-  totalItems: allUserFixtures.length,
-  totalPages: 1,
-}
-
-const VARSAYILAN_FILTRELER: UserFilterValues = { types: [], statuses: [], roles: [] }
-const TAM_YETKI: AdminPermission[] = [...ROLE_PERMISSIONS[AdminRole.SuperAdmin]]
+const USERS = [
+  { id: 1, name: 'Ahmet Yilmaz', email: 'ahmet@example.com', type: 'Bireysel', listings: 3, active: true },
+  { id: 2, name: 'Marmara Emlak', email: 'info@marmaraemlak.com', type: 'Kurumsal', listings: 24, active: true },
+  { id: 3, name: 'Fatih Demir', email: 'fatih.d@example.com', type: 'Bireysel', listings: 1, active: true },
+  { id: 4, name: 'Ege Gayrimenkul', email: 'iletisim@ege-g.com', type: 'Kurumsal', listings: 18, active: false },
+  { id: 5, name: 'Zeynep Kara', email: 'zeynep.k@example.com', type: 'Bireysel', listings: 0, active: true },
+  { id: 6, name: 'Anadolu Insaat', email: 'bilgi@anadolu.com', type: 'Kurumsal', listings: 42, active: true },
+]
 
 export function UsersPage() {
-  const navigate = useNavigate()
-  const [filters, setFilters] = useState<UserFilterValues>(VARSAYILAN_FILTRELER)
+  const [query, setQuery] = useState('')
+  const filtered = USERS.filter(
+    (u) => u.name.toLowerCase().includes(query.toLowerCase()) || u.email.toLowerCase().includes(query.toLowerCase()),
+  )
 
   return (
-    <UserManagementPage
-      state={{ status: 'success', data: KULLANICI_SAYFASI }}
-      filters={filters}
-      availablePermissions={TAM_YETKI}
-      onFiltersChange={setFilters}
-      onPageChange={() => {}}
-      onUserOpen={(user) => navigate(`/users/${user.id}`)}
-      onSuspend={() => {}}
-      onBan={() => {}}
-      onRoleChange={() => {}}
-      onRetry={() => {}}
-    />
+    <div className={css.root}>
+      <h1 className={css.title}>Kullanicilar</h1>
+
+      <input
+        className={css.searchInput}
+        placeholder="Kullanici ara..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+
+      <div className={css.list}>
+        {filtered.map((u) => (
+          <div key={u.id} className={css.row}>
+            <div className={css.avatar}>{u.name.charAt(0)}</div>
+            <div className={css.info}>
+              <span className={css.name}>{u.name}</span>
+              <span className={css.email}>{u.email}</span>
+            </div>
+            <span className={css.badge}>{u.type}</span>
+            <span className={css.count}>{u.listings} ilan</span>
+            <span
+              className={css.statusDot}
+              style={{ background: u.active ? '#4ade80' : '#ef4444' }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
