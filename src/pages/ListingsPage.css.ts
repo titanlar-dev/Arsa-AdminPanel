@@ -213,6 +213,7 @@ export const identifier = style({
 })
 
 export const paginationWrap = style({
-  fontSize: '0.75rem',
-  marginTop: '-0.25rem',
+  transform: 'scale(0.82)',
+  transformOrigin: 'center top',
+  marginBottom: '-0.5rem',
 })
