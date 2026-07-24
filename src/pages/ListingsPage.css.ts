@@ -12,7 +12,7 @@ const glass = {
 
 export const root = style({
   display: 'flex', flexDirection: 'column', gap: '1rem',
-  maxWidth: '1100px', marginInline: 'auto',
+  maxWidth: '1440px', marginInline: 'auto',
   animation: `${fadeIn} 0.4s ease-out`,
 })
 
@@ -98,3 +98,43 @@ export const pageBtn = style({
 export const pageBtns = style({ display: 'flex', gap: '0.375rem' })
 export const muted = style({ color: 'rgba(255,255,255,0.35)' })
 export const price = style({ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' })
+
+export const cover = style({
+  width: '40px', height: '30px', objectFit: 'cover', borderRadius: '4px',
+  background: 'rgba(255,255,255,0.06)', display: 'block',
+})
+
+export const coverMissing = style({
+  width: '40px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  background: 'rgba(255,255,255,0.04)', borderRadius: '4px', color: 'rgba(255,255,255,0.2)',
+})
+
+export const cellStack = style({
+  display: 'flex', flexDirection: 'column', gap: '1px',
+})
+
+export const cellPrimary = style({
+  fontSize: '0.8125rem', color: 'rgba(255,255,255,0.88)',
+  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+})
+
+export const cellSecondary = style({
+  fontSize: '0.6875rem', color: 'rgba(255,255,255,0.4)',
+})
+
+export const metric = style({
+  fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+})
+
+export const empty = style({
+  color: 'rgba(255,255,255,0.2)',
+})
+
+export const badgeList = style({
+  display: 'flex', flexWrap: 'wrap', gap: '0.25rem',
+})
+
+export const identifier = style({
+  fontFamily: 'var(--font-mono, monospace)', fontSize: '0.75rem',
+  color: 'rgba(255,255,255,0.5)', letterSpacing: '0.02em',
+})
