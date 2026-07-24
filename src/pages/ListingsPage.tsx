@@ -16,8 +16,8 @@ import { formatCurrency } from '../utils/formatCurrency'
 import { formatDate } from '../utils/formatDateTime'
 import { PromotionType, type Listing, type PromotionFlags } from '../types/domain'
 import type { ColumnDef, SelectOption } from '../types/component-props'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { DataTable } from '../components/composites/DataTable'
-import { Pagination } from '../components/composites/Pagination'
 import { Badge } from '../components/primitives/Badge'
 import { StatusBadge } from '../components/composites/StatusBadge'
 import * as css from './ListingsPage.css'
@@ -306,15 +306,57 @@ export function ListingsPage() {
         onRowClick={(row) => navigate(`/listings/${row.id}`)}
       />
 
-      <div className={css.paginationWrap}>
-        <Pagination
-          page={page}
-          pageSize={pageSize}
-          totalItems={totalItems}
-          pageSizeOptions={PAGE_SIZE_OPTIONS}
-          onPageChange={setPage}
-          onPageSizeChange={handlePageSizeChange}
-        />
+      <div className={css.paginationBar}>
+        <span className={css.paginationInfo}>
+          {start + 1}–{Math.min(start + pageSize, totalItems)} / {totalItems}
+        </span>
+
+        <div className={css.paginationPages}>
+          <button
+            type="button"
+            className={css.paginationBtn}
+            disabled={page <= 1}
+            onClick={() => setPage(page - 1)}
+            aria-label="Onceki sayfa"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          {Array.from({ length: Math.ceil(totalItems / pageSize) }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={css.paginationBtn}
+              aria-current={p === page ? 'page' : undefined}
+              onClick={() => setPage(p)}
+            >
+              {p}
+            </button>
+          ))}
+          <button
+            type="button"
+            className={css.paginationBtn}
+            disabled={page >= Math.ceil(totalItems / pageSize)}
+            onClick={() => setPage(page + 1)}
+            aria-label="Sonraki sayfa"
+          >
+            <ChevronRight size={14} />
+          </button>
+        </div>
+
+        <div className={css.pageSizeWrap}>
+          <span className={css.paginationInfo}>Sayfa:</span>
+          <select
+            className={css.pageSizeSelect}
+            value={pageSize}
+            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+          >
+            {PAGE_SIZE_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
     </div>
   )

@@ -212,8 +212,80 @@ export const identifier = style({
   letterSpacing: '0.02em',
 })
 
-export const paginationWrap = style({
-  transform: 'scale(0.82)',
-  transformOrigin: 'center top',
-  marginBottom: '-0.5rem',
+export const paginationBar = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: '0.375rem 0.75rem',
+  ...glass,
+  borderRadius: '8px',
+  fontSize: '0.75rem',
+  color: 'rgba(255,255,255,0.45)',
+})
+
+export const paginationInfo = style({
+  fontVariantNumeric: 'tabular-nums',
+  whiteSpace: 'nowrap',
+})
+
+export const paginationPages = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '2px',
+})
+
+export const paginationBtn = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minWidth: '1.5rem',
+  height: '1.5rem',
+  padding: '0 0.25rem',
+  border: '1px solid transparent',
+  borderRadius: '4px',
+  background: 'transparent',
+  color: 'rgba(255,255,255,0.5)',
+  fontSize: '0.6875rem',
+  fontWeight: 500,
+  fontVariantNumeric: 'tabular-nums',
+  cursor: 'pointer',
+  transition: 'background 0.12s, color 0.12s',
+  selectors: {
+    '&:hover:not(:disabled)': {
+      background: 'rgba(255,255,255,0.06)',
+      color: 'rgba(255,255,255,0.85)',
+    },
+    '&[aria-current="page"]': {
+      background: 'rgba(99,102,241,0.7)',
+      color: '#fff',
+      fontWeight: 600,
+      borderColor: 'transparent',
+    },
+    '&:disabled': {
+      opacity: 0.25,
+      cursor: 'default',
+    },
+  },
+})
+
+export const pageSizeWrap = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.375rem',
+})
+
+export const pageSizeSelect = style({
+  padding: '0.125rem 0.375rem',
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: '4px',
+  color: 'rgba(255,255,255,0.75)',
+  fontSize: '0.6875rem',
+  outline: 'none',
+  cursor: 'pointer',
+  selectors: {
+    '&:focus': {
+      borderColor: 'rgba(255,255,255,0.2)',
+    },
+  },
 })
