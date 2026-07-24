@@ -5,10 +5,10 @@ import { vars } from '@/tokens/contract.css'
 export const wrapper = recipe({
   base: {
     width: '100%',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
+    background: 'rgba(255, 255, 255, 0.025)',
+    border: '1px solid rgba(255, 255, 255, 0.07)',
     borderRadius: '12px',
-    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.04)',
     overflow: 'hidden',
   },
   variants: {
@@ -36,7 +36,7 @@ export const table = style({
 
 export const thead = recipe({
   base: {
-    background: 'rgba(255, 255, 255, 0.04)',
+    background: 'rgba(255, 255, 255, 0.035)',
   },
   variants: {
     sticky: {
@@ -50,7 +50,7 @@ export const thead = recipe({
 export const th = recipe({
   base: {
     borderBlockEnd: '1px solid rgba(255, 255, 255, 0.06)',
-    color: 'rgba(255, 255, 255, 0.55)',
+    color: 'rgba(255, 255, 255, 0.5)',
     fontWeight: 500,
     fontSize: '0.6875rem',
     letterSpacing: '0.06em',
@@ -60,8 +60,8 @@ export const th = recipe({
   },
   variants: {
     density: {
-      comfortable: { padding: '0.625rem 0.75rem' },
-      compact: { padding: '0.375rem 0.5rem' },
+      comfortable: { padding: '0.625rem 0.875rem' },
+      compact: { padding: '0.375rem 0.625rem' },
     },
     align: {
       start: { textAlign: 'start' },
@@ -90,11 +90,12 @@ export const sortButton = style({
 
 /** Aktif olmayan sıralama oku soluk: hangi sütunun sıralandığı belli olsun. */
 export const sortIcon = style({
-  opacity: 0.35,
+  opacity: 0.3,
   flexShrink: 0,
+  transition: 'opacity 0.12s, color 0.12s',
 
   selectors: {
-    '[data-sorted] &': { opacity: 1, color: '#818cf8' },
+    '[data-sorted] &': { opacity: 1, color: '#818cf8', transition: 'opacity 0.12s, color 0.12s' },
   },
 })
 
@@ -105,9 +106,9 @@ export const tr = recipe({
 
     selectors: {
       '&:last-child': { borderBlockEnd: 'none' },
-      '&[data-clickable]:hover': { background: 'rgba(99, 102, 241, 0.06)', cursor: 'pointer' },
+      '&[data-clickable]:hover': { background: 'rgba(99, 102, 241, 0.05)', cursor: 'pointer' },
       '&[data-selected]': {
-        background: 'rgba(99, 102, 241, 0.10)',
+        background: 'rgba(99, 102, 241, 0.08)',
         boxShadow: 'inset 2px 0 0 #818cf8',
       },
     },
@@ -116,7 +117,7 @@ export const tr = recipe({
     striped: {
       true: {
         selectors: {
-          '&:nth-child(even):not([data-selected])': { background: 'rgba(255, 255, 255, 0.02)' },
+          '&:nth-child(even):not([data-selected])': { background: 'rgba(255, 255, 255, 0.015)' },
         },
       },
       false: {},
@@ -127,14 +128,14 @@ export const tr = recipe({
 
 export const td = recipe({
   base: {
-    color: 'rgba(255, 255, 255, 0.82)',
+    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: '0.8125rem',
     verticalAlign: 'middle',
   },
   variants: {
     density: {
-      comfortable: { padding: '0.625rem 0.75rem' },
-      compact: { padding: '0.375rem 0.5rem' },
+      comfortable: { padding: '0.625rem 0.875rem' },
+      compact: { padding: '0.375rem 0.625rem' },
     },
     align: {
       start: { textAlign: 'start' },
@@ -267,7 +268,7 @@ export const segmentButton = recipe({
     paddingInline: vars.space[3],
     border: 'none',
     background: 'rgba(255, 255, 255, 0.04)',
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: 'rgba(255, 255, 255, 0.55)',
     fontSize: vars.font.size.sm,
     fontWeight: vars.font.weight.medium,
     cursor: 'pointer',
@@ -284,7 +285,7 @@ export const segmentButton = recipe({
     active: {
       /** Seçili yoğunluk: primary zeminle işaretlenir — renk tek gösterge değil, `aria-pressed` de var. */
       true: {
-        background: 'rgba(99, 102, 241, 0.2)',
+        background: 'rgba(99, 102, 241, 0.15)',
         color: '#c7d2fe',
       },
       false: {},
@@ -349,8 +350,8 @@ export const selectAllBanner = style({
   flexWrap: 'wrap',
   gap: vars.space[1],
   padding: `${vars.space[2]} ${vars.space[4]}`,
-  background: 'rgba(99, 102, 241, 0.08)',
-  borderBlockEnd: '1px solid rgba(99, 102, 241, 0.2)',
+  background: 'rgba(99, 102, 241, 0.06)',
+  borderBlockEnd: '1px solid rgba(99, 102, 241, 0.15)',
   color: 'rgba(255, 255, 255, 0.82)',
   fontSize: vars.font.size.sm,
   textAlign: 'center',
@@ -465,7 +466,7 @@ export const filterButton = recipe({
     color: 'rgba(255, 255, 255, 0.5)',
     cursor: 'pointer',
     borderRadius: vars.radius.sm,
-    opacity: 0.45,
+    opacity: 0.4,
     flexShrink: 0,
     transition: `opacity 0.15s, color 0.15s, background-color 0.15s`,
 
@@ -486,7 +487,7 @@ export const filterButton = recipe({
       true: {
         opacity: 1,
         color: '#a5b4fc',
-        background: 'rgba(99, 102, 241, 0.12)',
+        background: 'rgba(99, 102, 241, 0.1)',
       },
       false: {},
     },
@@ -515,15 +516,15 @@ export const columnFilterPopover = style({
   marginTop: vars.space[1],
 
   background:
-    'linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 100%), rgba(20, 22, 36, 0.92)',
+    'linear-gradient(160deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%), rgba(15, 18, 30, 0.94)',
   backdropFilter: 'blur(24px) saturate(160%)',
   WebkitBackdropFilter: 'blur(24px) saturate(160%)',
-  border: `1px solid rgba(255, 255, 255, 0.12)`,
-  borderRadius: vars.radius.lg,
+  border: `1px solid rgba(255, 255, 255, 0.10)`,
+  borderRadius: '12px',
   boxShadow: [
-    'inset 0 0.5px 0 rgba(255, 255, 255, 0.08)',
-    `0 8px 32px rgba(0, 0, 0, 0.35)`,
-    `0 2px 8px rgba(0, 0, 0, 0.2)`,
+    'inset 0 0.5px 0 rgba(255, 255, 255, 0.06)',
+    `0 8px 32px rgba(0, 0, 0, 0.3)`,
+    `0 2px 8px rgba(0, 0, 0, 0.15)`,
   ].join(', '),
   color: 'rgba(255, 255, 255, 0.82)',
   fontSize: vars.font.size.sm,
@@ -532,7 +533,7 @@ export const columnFilterPopover = style({
 
   '@supports': {
     'not (backdrop-filter: blur(1px))': {
-      background: 'rgba(20, 22, 36, 0.97)',
+      background: 'rgba(15, 18, 30, 0.97)',
     },
   },
 
@@ -587,7 +588,7 @@ export const popoverButton = recipe({
     alignItems: 'center',
     justifyContent: 'center',
     padding: `${vars.space[1]} ${vars.space[3]}`,
-    border: '1px solid rgba(255, 255, 255, 0.12)',
+    border: '1px solid rgba(255, 255, 255, 0.10)',
     borderRadius: vars.radius.md,
     fontSize: vars.font.size.sm,
     fontWeight: vars.font.weight.medium,
@@ -604,8 +605,8 @@ export const popoverButton = recipe({
       },
       ghost: {
         background: 'transparent',
-        color: 'rgba(255, 255, 255, 0.7)',
-        ':hover': { background: 'rgba(255, 255, 255, 0.08)', color: 'rgba(255, 255, 255, 0.9)' },
+        color: 'rgba(255, 255, 255, 0.65)',
+        ':hover': { background: 'rgba(255, 255, 255, 0.06)' },
       },
     },
   },

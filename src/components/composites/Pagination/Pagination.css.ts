@@ -63,7 +63,7 @@ export const pageButton = style({
   border: '1px solid rgba(255, 255, 255, 0.08)',
   borderRadius: vars.radius.md,
   background: 'transparent',
-  color: 'rgba(255, 255, 255, 0.6)',
+  color: 'rgba(255, 255, 255, 0.55)',
   fontSize: vars.font.size.sm,
   fontWeight: vars.font.weight.medium,
   fontVariantNumeric: 'tabular-nums',
@@ -83,14 +83,14 @@ export const pageButton = style({
      * olur: tek başına renk gösterge değildir.
      */
     '&[aria-current="page"]': {
-      background: 'rgba(99, 102, 241, 0.2)',
-      borderColor: 'rgba(99, 102, 241, 0.4)',
-      color: '#c7d2fe',
+      background: '#6366f1',
+      borderColor: 'transparent',
+      color: '#ffffff',
       fontWeight: vars.font.weight.semibold,
     },
 
     '&:disabled': {
-      color: 'rgba(255, 255, 255, 0.25)',
+      opacity: 0.35,
       cursor: 'not-allowed',
     },
   },

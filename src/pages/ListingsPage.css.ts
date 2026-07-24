@@ -24,8 +24,9 @@ export const title = style({
 })
 
 export const badge = style({
-  fontSize: '0.75rem', fontWeight: 500, color: 'rgba(255,255,255,0.5)',
-  background: 'rgba(255,255,255,0.06)', padding: '0.2rem 0.6rem', borderRadius: '6px',
+  fontSize: '0.75rem', fontWeight: 500, color: 'rgba(255,255,255,0.4)',
+  background: 'rgba(255,255,255,0.04)', padding: '0.15rem 0.5rem', borderRadius: '4px',
+  border: '1px solid rgba(255,255,255,0.06)',
 })
 
 export const search = style({
