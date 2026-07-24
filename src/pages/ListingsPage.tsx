@@ -17,6 +17,7 @@ import { formatDate } from '../utils/formatDateTime'
 import { PromotionType, type Listing, type PromotionFlags } from '../types/domain'
 import type { ColumnDef, SelectOption } from '../types/component-props'
 import { DataTable } from '../components/composites/DataTable'
+import { Pagination } from '../components/composites/Pagination'
 import { Badge } from '../components/primitives/Badge'
 import { StatusBadge } from '../components/composites/StatusBadge'
 import * as css from './ListingsPage.css'
@@ -232,9 +233,14 @@ const COLUMNS: ColumnDef<Listing>[] = [
   },
 ]
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+const DEFAULT_PAGE_SIZE = 10
+
 export function ListingsPage() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
   const filtered = query
     ? allMockListings.filter((l) => {
@@ -247,11 +253,25 @@ export function ListingsPage() {
       })
     : allMockListings
 
+  const totalItems = filtered.length
+  const start = (page - 1) * pageSize
+  const paginatedRows = filtered.slice(start, start + pageSize)
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value)
+    setPage(1)
+  }
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize)
+    setPage(1)
+  }
+
   return (
     <div className={css.root}>
       <div className={css.header}>
         <h1 className={css.title}>Ilanlar</h1>
-        <span className={css.badge}>{filtered.length} ilan</span>
+        <span className={css.badge}>{totalItems} ilan</span>
         <button
           type="button"
           style={{
@@ -275,15 +295,24 @@ export function ListingsPage() {
         className={css.search}
         placeholder="Ilan no, baslik veya kullanici ara..."
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => handleQueryChange(e.target.value)}
       />
 
       <DataTable<Listing>
-        rows={filtered}
+        rows={paginatedRows}
         columns={COLUMNS}
         selectable
         density="compact"
         onRowClick={(row) => navigate(`/listings/${row.id}`)}
+      />
+
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        totalItems={totalItems}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        onPageChange={setPage}
+        onPageSizeChange={handlePageSizeChange}
       />
     </div>
   )
