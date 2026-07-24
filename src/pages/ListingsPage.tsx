@@ -1,170 +1,136 @@
 import { useState } from 'react'
 import { allMockListings } from '../mocks/listings'
-import { LISTING_CATEGORY_LABEL, LISTING_STATUS_LABEL } from '../domain/labels'
+import { LISTING_CATEGORY_LABEL, LISTING_STATUS_LABEL, TRANSACTION_TYPE_LABEL } from '../domain/labels'
 import { formatCurrency } from '../utils/formatCurrency'
 import type { Listing } from '../types/domain'
+import type { ColumnDef, SelectOption } from '../types/component-props'
+import { DataTable } from '../components/composites/DataTable'
+import { StatusBadge } from '../components/composites/StatusBadge'
 import * as css from './ListingsPage.css'
 
-const STATUS_COLOR: Record<string, string> = {
-  published: '#22c55e',
-  pendingReview: '#f59e0b',
-  rejected: '#ef4444',
-  draft: '#6b7280',
-  paused: '#3b82f6',
-  expired: '#8b5cf6',
-  changesRequested: '#f97316',
-  archived: '#6b7280',
-}
+/* ── Filter options ── */
 
-const PAGE_SIZE = 12
+const KATEGORI_SEC: SelectOption[] = [
+  { value: 'konut', label: 'Konut' },
+  { value: 'arsa', label: 'Arsa' },
+  { value: 'isyeri', label: 'Is Yeri' },
+  { value: 'bina', label: 'Bina' },
+]
+
+const DURUM_SEC: SelectOption[] = Object.entries(LISTING_STATUS_LABEL).map(([k, v]) => ({
+  value: k,
+  label: v,
+}))
+
+const ISLEM_SEC: SelectOption[] = Object.entries(TRANSACTION_TYPE_LABEL).map(([k, v]) => ({
+  value: k,
+  label: v,
+}))
+
+/* ── Advanced column definitions ── */
+
+const COLUMNS: ColumnDef<Listing>[] = [
+  {
+    id: 'listingNo',
+    header: 'Ilan No',
+    accessor: 'listingNo',
+    sortable: true,
+    columnFilterable: true,
+    columnFilterType: 'text',
+    width: '9rem',
+  },
+  {
+    id: 'title',
+    header: 'Baslik',
+    cell: (row) => (
+      <span style={{ maxWidth: '18rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+        {row.title}
+      </span>
+    ),
+    sortable: true,
+    sortAccessor: (row) => row.title,
+    filterable: true,
+    filterAccessor: (row) => row.title,
+    columnFilterable: true,
+    columnFilterType: 'text',
+  },
+  {
+    id: 'category',
+    header: 'Kategori',
+    cell: (row) => LISTING_CATEGORY_LABEL[row.category],
+    columnFilterable: true,
+    columnFilterType: 'select',
+    columnFilterOptions: KATEGORI_SEC,
+  },
+  {
+    id: 'transactionType',
+    header: 'Islem Turu',
+    cell: (row) => TRANSACTION_TYPE_LABEL[row.transactionType],
+    columnFilterable: true,
+    columnFilterType: 'select',
+    columnFilterOptions: ISLEM_SEC,
+  },
+  {
+    id: 'location',
+    header: 'Konum',
+    cell: (row) => `${row.location.cityName}, ${row.location.districtName}`,
+    columnFilterable: true,
+    columnFilterType: 'text',
+  },
+  {
+    id: 'price',
+    header: 'Fiyat',
+    cell: (row) => formatCurrency(row.price),
+    sortable: true,
+    align: 'end',
+    sortAccessor: (row) => row.price.amount,
+    columnFilterable: true,
+    columnFilterType: 'number',
+  },
+  {
+    id: 'status',
+    header: 'Durum',
+    cell: (row) => <StatusBadge status={row.status} size="sm" showDot />,
+    columnFilterable: true,
+    columnFilterType: 'select',
+    columnFilterOptions: DURUM_SEC,
+  },
+]
 
 export function ListingsPage() {
   const [query, setQuery] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
-  const [statusFilter, setStatusFilter] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('')
-  const [page, setPage] = useState(1)
 
-  const filtered = allMockListings.filter((l) => {
-    if (query) {
-      const q = query.toLowerCase()
-      if (
-        !l.listingNo.toLowerCase().includes(q) &&
-        !l.title.toLowerCase().includes(q) &&
-        !l.seller.displayName.toLowerCase().includes(q)
-      ) return false
-    }
-    if (statusFilter && l.status !== statusFilter) return false
-    if (categoryFilter && l.category !== categoryFilter) return false
-    return true
-  })
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const safePage = Math.min(page, totalPages)
-  const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
-  const start = (safePage - 1) * PAGE_SIZE + 1
-  const end = Math.min(safePage * PAGE_SIZE, filtered.length)
+  const filtered = query
+    ? allMockListings.filter((l) => {
+        const q = query.toLocaleLowerCase('tr')
+        return (
+          l.listingNo.toLocaleLowerCase('tr').includes(q) ||
+          l.title.toLocaleLowerCase('tr').includes(q) ||
+          l.seller.displayName.toLocaleLowerCase('tr').includes(q)
+        )
+      })
+    : allMockListings
 
   return (
     <div className={css.root}>
-      {/* Header */}
       <div className={css.header}>
         <h1 className={css.title}>Ilanlar</h1>
         <span className={css.badge}>{filtered.length} ilan</span>
       </div>
 
-      {/* Search */}
       <input
         className={css.search}
         placeholder="Ilan no, baslik veya kullanici ara..."
         value={query}
-        onChange={(e) => { setQuery(e.target.value); setPage(1) }}
+        onChange={(e) => setQuery(e.target.value)}
       />
 
-      {/* Filters */}
-      <button
-        type="button"
-        className={css.filterBtn}
-        onClick={() => setShowFilters((v) => !v)}
-      >
-        {showFilters ? 'Filtreleri gizle' : 'Filtreler'}
-      </button>
-
-      {showFilters && (
-        <div className={css.filterGrid}>
-          <select
-            className={css.filterSelect}
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-          >
-            <option value="">Tum durumlar</option>
-            {Object.entries(LISTING_STATUS_LABEL).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
-            ))}
-          </select>
-          <select
-            className={css.filterSelect}
-            value={categoryFilter}
-            onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }}
-          >
-            <option value="">Tum kategoriler</option>
-            {Object.entries(LISTING_CATEGORY_LABEL).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Table */}
-      <div className={css.tableWrap}>
-        <table className={css.table}>
-          <thead>
-            <tr>
-              <th className={css.th}>Foto</th>
-              <th className={css.th}>Ilan No</th>
-              <th className={css.th}>Baslik</th>
-              <th className={css.th}>Kategori</th>
-              <th className={css.th}>Konum</th>
-              <th className={css.th}>Fiyat</th>
-              <th className={css.th}>Durum</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paged.map((l: Listing) => (
-              <tr key={l.id}>
-                <td className={css.td}>
-                  {l.photos[0] ? (
-                    <img className={css.thumb} src={l.photos[0].thumbnailUrl} alt="" />
-                  ) : (
-                    <span className={css.muted}>--</span>
-                  )}
-                </td>
-                <td className={css.td}>{l.listingNo}</td>
-                <td className={css.td}>{l.title}</td>
-                <td className={css.td}>
-                  {LISTING_CATEGORY_LABEL[l.category]}
-                </td>
-                <td className={css.td}>
-                  {l.location.cityName}, {l.location.districtName}
-                </td>
-                <td className={`${css.td} ${css.price}`}>
-                  {formatCurrency(l.price)}
-                </td>
-                <td className={css.td}>
-                  <span
-                    className={css.statusDot}
-                    style={{ background: STATUS_COLOR[l.status] ?? '#6b7280' }}
-                  />
-                  {LISTING_STATUS_LABEL[l.status]}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      <div className={css.pager}>
-        <span>{start}-{end} / {filtered.length} kayit</span>
-        <div className={css.pageBtns}>
-          <button
-            type="button"
-            className={css.pageBtn}
-            disabled={safePage <= 1}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            Onceki
-          </button>
-          <button
-            type="button"
-            className={css.pageBtn}
-            disabled={safePage >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Sonraki
-          </button>
-        </div>
-      </div>
+      <DataTable<Listing>
+        rows={filtered}
+        columns={COLUMNS}
+        selectable
+        density="compact"
+      />
     </div>
   )
 }
