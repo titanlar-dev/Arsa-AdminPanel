@@ -14,7 +14,7 @@ const dirname =
 export default defineConfig({
   plugins: [react(), vanillaExtractPlugin()],
 
-  base: '/Arsam.net-AdminPanel/',
+  base: '/Arsa-AdminPanel/',
 
   server: {
     port: 3434,
