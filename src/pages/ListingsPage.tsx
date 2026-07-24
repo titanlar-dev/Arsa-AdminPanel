@@ -276,12 +276,12 @@ export function ListingsPage() {
           type="button"
           style={{
             marginLeft: 'auto',
-            padding: '0.5rem 1rem',
+            padding: '0.375rem 0.75rem',
             background: 'rgba(99,102,241,0.8)',
             border: 'none',
-            borderRadius: '8px',
+            borderRadius: '6px',
             color: 'rgba(255,255,255,0.95)',
-            fontSize: '0.8125rem',
+            fontSize: '0.75rem',
             fontWeight: 600,
             cursor: 'pointer',
           }}
@@ -306,14 +306,16 @@ export function ListingsPage() {
         onRowClick={(row) => navigate(`/listings/${row.id}`)}
       />
 
-      <Pagination
-        page={page}
-        pageSize={pageSize}
-        totalItems={totalItems}
-        pageSizeOptions={PAGE_SIZE_OPTIONS}
-        onPageChange={setPage}
-        onPageSizeChange={handlePageSizeChange}
-      />
+      <div className={css.paginationWrap}>
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+        />
+      </div>
     </div>
   )
 }
