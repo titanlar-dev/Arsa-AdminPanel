@@ -1,0 +1,13 @@
+node_modules
+dist
+storybook-static
+coverage
+pnpm-lock.yaml
+*.log
+
+# Kaynak brifing dokümanı — dış kaynaklı referans, biçimine dokunulmaz.
+gayrimenkul-admin-panel-uygulama-brifingi.md
+
+# Makineye özgü, git'in de yok saydığı yerel araç ayarı. Biçimlendirilse bile
+# aracın kendisi ilk yazışında geri bozar; format:check'i boşuna kırıyordu.
+.claude/settings.local.json
