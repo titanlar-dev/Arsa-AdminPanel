@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import { allMockListings } from '../mocks/listings'
 import { LISTING_CATEGORY_LABEL, LISTING_STATUS_LABEL, TRANSACTION_TYPE_LABEL } from '../domain/labels'
 import { formatCurrency } from '../utils/formatCurrency'
@@ -98,6 +99,7 @@ const COLUMNS: ColumnDef<Listing>[] = [
 ]
 
 export function ListingsPage() {
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
 
   const filtered = query
@@ -116,6 +118,23 @@ export function ListingsPage() {
       <div className={css.header}>
         <h1 className={css.title}>Ilanlar</h1>
         <span className={css.badge}>{filtered.length} ilan</span>
+        <button
+          type="button"
+          style={{
+            marginLeft: 'auto',
+            padding: '0.5rem 1rem',
+            background: 'rgba(99,102,241,0.8)',
+            border: 'none',
+            borderRadius: '8px',
+            color: 'rgba(255,255,255,0.95)',
+            fontSize: '0.8125rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+          onClick={() => navigate('/listings/new/edit')}
+        >
+          Ilan Ekle
+        </button>
       </div>
 
       <input
@@ -130,6 +149,7 @@ export function ListingsPage() {
         columns={COLUMNS}
         selectable
         density="compact"
+        onRowClick={(row) => navigate(`/listings/${row.id}`)}
       />
     </div>
   )

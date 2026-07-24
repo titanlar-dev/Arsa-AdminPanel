@@ -8,6 +8,8 @@ import { UsersPage } from './pages/UsersPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { SettingsPageWrapper } from './pages/SettingsPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { ListingDetailPage } from './pages/ListingDetailPage'
+import { ListingEditPage } from './pages/ListingEditPage'
 
 /**
  * Panel rotalarini tanimlayan browser router.
@@ -36,7 +38,11 @@ const router = createHashRouter([
       },
       {
         path: 'listings/:id',
-        element: <PlaceholderPage title="Ilan Detayi" />,
+        element: <ListingDetailPage />,
+      },
+      {
+        path: 'listings/:id/edit',
+        element: <ListingEditPage />,
       },
       {
         path: 'moderation',
